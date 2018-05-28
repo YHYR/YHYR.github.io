@@ -1,0 +1,11 @@
+
+<%- partial('_partial/_common/profile') %>
+
+  <% page.posts.sort('date', -1).each(function (post) { %>    	  	
+
+  		<% if (post.raw.length > 0 ) {%>
+    	<%- partial('_partial/article',{post:post , meta: true}) %>     
+     	<% }%>
+  <% }) %>
+
+<%- partial('_partial/paginator') %>
