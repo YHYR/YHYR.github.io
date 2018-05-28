@@ -1,12 +1,17 @@
 ---
 title: 基于GitHub Pages + Hexo 多端搭建本地博客环境
 date: 2018-05-28 21:04:43
-tags: GitHub Pages, Hexo, 博客搭建
+tags: 
+	- GitHub Pages
+	- Hexo
+	- 博客搭建
 ---
 
 ## 前言
 
 阅读此文前，假定你已经了解如何基于GitHub Pages + Hexo来搭建个人博客。如果不了解的，可参考如下[教程](https://www.cnblogs.com/fengxiongZz/p/7707219.html)或[教程](http://crazymilk.github.io/2015/12/28/GitHub-Pages-Hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A2/)(就不重复造轮子了)；为自己的博客添加主题，其实也很简单：只需要在[Hexo](https://hexo.io/themes/)中挑选出自己心仪的风格，并将对应的源码从GitHub上clone到本地，并存放在你本地博客目录的themes路径下，并修改博客根目录的_config.yml文件，将theme: landscape中的landscape替换为你clone下来的文件夹名即可。具体操作参考[教程](http://www.cnblogs.com/fengxiongZz/p/7707568.html)。
+
+<!--more-->
 
 接下来进入正题：搭建过个人博客的都清楚，Hexo是通过Node.js将本地的md文件(即就是你的博客源文件)基于指定的主题渲染成静态页面，在本地生成public文件夹，然后通过部署将public文件夹同步到GitHub上，这样你就可以通过username.github.io来访问。那么问题来了，当你如果换了台电脑或者想在其他机器上修改你的博客或者写一篇新博客，这就没招了。因为通过Hexo发布到GitHub上的是经过Node.js渲染过后的HTML文件，而非原始的md文件；所有你clone下GitHub上的源码也没什么用，除非你可以接受直接基于HTML写文档，那在这里我给你一个大写的服字。
 
