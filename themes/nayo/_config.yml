@@ -22,7 +22,7 @@ profile:
   #logo: Nayo
   author: 永恒依然
   avatar: /images/header.jpg  
-  description: hi,i am lemon
+  description: YHYR
 
 # site favicon
 # source/imgaes/
@@ -87,9 +87,9 @@ share_item:
 # source/imgaes/
 donate:
   enable: true
-  word: 你的认可是我坚持下去的理由
-  wechat: /images/donate1.png
-  alipay: /images/donate2.png
+  word: 您的认可是我坚持下去的理由
+  wechat: /images/donate_wechat.png
+  alipay: /images/donate_wechat.png
 
 # mathjax 
 # 渲染LateX公式
@@ -108,7 +108,7 @@ mathjax:
 # footer
 # 底部信息
 footer:
-  author: Lemon
+  author: YHYR
   since: 2018
 
 
