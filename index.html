@@ -120,6 +120,54 @@
 	   
 	<div class="article-header">
 	    
+	     <a class="article-title" href="/2018/06/01/Python-Mysql依赖初探/">Python-Mysql依赖初探</a>  
+	       
+		 
+
+		<div class="article-meta">
+		
+		Jun 01, 2018
+
+		
+			<span class="iconfont icon-star"></span>		 
+			            
+			<a class="article-tag" href="/tags/Python/">Python</a>           
+			            
+			<a class="article-tag" href="/tags/MySQL/">MySQL</a>           
+			            
+			<a class="article-tag" href="/tags/MySQLdb/">MySQLdb</a>           
+			
+		
+		</div>
+
+	</div>
+
+
+	
+
+    
+	<div class="article-excerpt">	
+		
+			<h3 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h3><blockquote>
+<p>MySQL 5.7.17</p>
+<p>Python 2.7</p>
+<p>Mysql-python 1.2.5</p>
+</blockquote>
+		  	  
+	</div>
+
+	<div class="article-bottom">
+		<a class="article-readmore" href="/2018/06/01/Python-Mysql依赖初探/">Continue</a> 	</div>	
+    
+</article>     
+     	
+      	  	
+
+  		
+    	<article class="article">		
+	   
+	<div class="article-header">
+	    
 	     <a class="article-title" href="/2018/06/01/基于pandas的数据分析之数据类型转化踩坑总结/">基于pandas的数据分析之数据类型转化踩坑总结</a>  
 	       
 		 
@@ -145,74 +193,11 @@
 
     
 	<div class="article-excerpt">	
-		 
-			<h3 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h3><blockquote>
-<p>MySQL 5.7.17</p>
-<p>Python 2.7</p>
-<p>MySQL-python 1.2.5</p>
-<p>Pandas 0.18.1</p>
-</blockquote>
-<h3 id="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"><a href="#从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题" class="headerlink" title="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"></a>从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题</h3><ol>
+		
+			<h3 id="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"><a href="#从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题" class="headerlink" title="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"></a>从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题</h3><ol>
 <li>由于数据缺失导致DataFrame中int转float</li>
 <li>由于数据类型字符串导致csv加载到DataFrame时String转numeric</li>
 </ol>
-<h1 id="一、由于数据缺失导致DataFrame中int转float"><a href="#一、由于数据缺失导致DataFrame中int转float" class="headerlink" title="一、由于数据缺失导致DataFrame中int转float"></a>一、由于数据缺失导致DataFrame中int转float</h1><h2 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h2><p>将MySQL的表结构转为Pandas的DataFrame时，会出现如下问题：</p>
-<ul>
-<li>age列原本为int类型，但是在DataFrame中转化为float类型</li>
-<li>对于SQL中的None值，在DataFrame里有多种表示方式</li>
-</ul>
-<p>数据源信息如下所示：</p>
-<p><img src="./表数据信息.png" alt="表数据信息"></p>
-<p><img src="./表字段信息.png" alt="表字段信息"></p>
-<p><img src="./表信息在DataFrame中的展示效果.png" alt="表信息在DataFrame中的展示效果"></p>
-<h2 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h2><p>　　通过查阅官方文档得知，pandas在处理缺失值上，拥有一套自己的转化逻辑；具体的转化规则如下图所示：</p>
-<p><img src="./pandas缺失值处理规则.png" alt="pandas缺失值处理规则"></p>
-<p>　　不难看出，当int型数据列包含空值时，会将该列转化为float类型；个人理解：在pandas中，对于数据类型的空值，是统一用Nan来表示的；Nan在pandas中是一float类型，代表一种特殊的值，而非其他语言中所定义的空对象；因此对于int类型的空值，因无法表示相应的空值，所以需要先做数据类型的转化，然后用Nan来表示其含义。</p>
-<p><img src="/images/placeholder.png" alt="Python_nan值类型" data-src="./Python_nan值类型.png" class="lazyload"></p>
-<p>　　通过这个例子，希望在理解numeric类型转化原因的同时，能够提高对异常数据的警惕性和敏感度；理解业务，实现需求的同时，能有准确、有效的进行数据降噪，从而提升数据的真实性和可信度。</p>
-<h1 id="由于数值类型字符串导致从csv加载到DataFrame时String转numeric"><a href="#由于数值类型字符串导致从csv加载到DataFrame时String转numeric" class="headerlink" title="由于数值类型字符串导致从csv加载到DataFrame时String转numeric"></a>由于数值类型字符串导致从csv加载到DataFrame时String转numeric</h1><h2 id="缺失值"><a href="#缺失值" class="headerlink" title="缺失值"></a>缺失值</h2><p>缺失值分别在MySQL、Python和Pandas上的表现形式如下所示：</p>
-<table>
-<thead>
-<tr>
-<th>/</th>
-<th>字符串空值</th>
-<th>空字符串</th>
-<th>数值类型空值</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>MySQL</td>
-<td>Null</td>
-<td>‘’</td>
-<td>Null</td>
-</tr>
-<tr>
-<td>Python</td>
-<td>None</td>
-<td>‘’</td>
-<td>None</td>
-</tr>
-<tr>
-<td>Pandas</td>
-<td>None</td>
-<td>‘’</td>
-<td>Nan</td>
-</tr>
-</tbody>
-</table>
-<p>　　<strong>由于字符串空值和空字符串这两种情况在写到csv的效果完全一致，从而导致在读取数据时无法做区分</strong>。如果后续业务明确要求区分处理这两种情况，则会因为一次文件的读写操作导致数据失真。基于此原因，建议在实际开发的过程中，在同一个team下规定一个唯一的字符串标识符来代表None值(参考数仓建设)，从而有效区分字符串空值和空字符串的区别。</p>
-<h2 id="数据类型转化"><a href="#数据类型转化" class="headerlink" title="数据类型转化"></a>数据类型转化</h2><p>　　通过pd.read_csv方法加载csv文件时，如果某一列为数值字符串，则该列会别识别为numeric类型(eg：int, float)，而非原始的String类型。Eg：将前文中MySQL数据表中的sex列和passWord列的内容修改为纯数值，数据集及各列对应的数据类型分别如下所示：</p>
-<p><img src="/images/placeholder.png" alt="数值型字符串数据集" data-src="./数值型字符串数据集.png" class="lazyload"></p>
-<p><img src="/images/placeholder.png" alt="原始数据集数据类型" data-src="./原始数据集数据类型.png" class="lazyload"></p>
-<p>　　并将该表中的数据先写到本地csv文件；然后通过pd.read_csv读取文件时发现sex列被识别为int类型，passWord列被识别为float类型。数据展示效果及各列对应的数据类型分别如下图所示：</p>
-<p><img src="/images/placeholder.png" alt="经过一次读写操作后的数据集" data-src="./经过一次读写操作后的数据集.png" class="lazyload"></p>
-<p><img src="/images/placeholder.png" alt="经过一次读写操作后的数据集数据类型" data-src="./经过一次读写操作后的数据集数据类型.png" class="lazyload"></p>
-<p>　　所以在基于pandas操作csv文件时，需要特别注意这种情况。如果在后续的分析中，需要保留原始数据格式，则在读取csv文件时，需要通过dtype参数来显示的指定目标字段的数据类型，从而保证数据类型的前后统一。</p>
-<p><img src="/images/placeholder.png" alt="读csv指定数据类型" data-src="./读csv指定数据类型.png" class="lazyload"></p>
-<p><img src="/images/placeholder.png" alt="指定读取类型后的字段数据类型" data-src="./指定读取类型后的字段数据类型.png" class="lazyload"></p>
-<p>　　通过上述案例分析，希望今后在操作csv文件时注意区分空字符串和字符串空值在不同应用场景下的实际意义，以免造成潜在的数据隐患。</p>
-
 		  	  
 	</div>
 
@@ -299,7 +284,7 @@
      <div class="mobile-menu">      
 
       
-      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      <img class="mobile-menu-icon" src="/images/favicon.png">   
       
 
          

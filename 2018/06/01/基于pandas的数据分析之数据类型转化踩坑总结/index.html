@@ -86,7 +86,7 @@
 	
 		<i class="iconfont icon-words"></i>
 		<span>
-			1411
+			1412
 		</span>
 	
 </div>
@@ -99,16 +99,17 @@
 		
 
 			
-					<h3 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h3><blockquote>
+					<h3 id="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"><a href="#从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题" class="headerlink" title="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"></a>从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题</h3><ol>
+<li>由于数据缺失导致DataFrame中int转float</li>
+<li>由于数据类型字符串导致csv加载到DataFrame时String转numeric</li>
+</ol>
+<a id="more"></a>
+<h3 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h3><blockquote>
 <p>MySQL 5.7.17</p>
 <p>Python 2.7</p>
 <p>MySQL-python 1.2.5</p>
 <p>Pandas 0.18.1</p>
 </blockquote>
-<h3 id="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"><a href="#从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题" class="headerlink" title="从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题"></a>从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题</h3><ol>
-<li>由于数据缺失导致DataFrame中int转float</li>
-<li>由于数据类型字符串导致csv加载到DataFrame时String转numeric</li>
-</ol>
 <h1 id="一、由于数据缺失导致DataFrame中int转float"><a href="#一、由于数据缺失导致DataFrame中int转float" class="headerlink" title="一、由于数据缺失导致DataFrame中int转float"></a>一、由于数据缺失导致DataFrame中int转float</h1><h2 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h2><p>将MySQL的表结构转为Pandas的DataFrame时，会出现如下问题：</p>
 <ul>
 <li>age列原本为int类型，但是在DataFrame中转化为float类型</li>
@@ -250,7 +251,10 @@
 
       </div>  
     <nav class="pf-paginator">
-           
+      
+         
+          <a href="/2018/06/01/Python-Mysql依赖初探/" data-hover="Python-Mysql依赖初探">Prev</a>      
+            
         
       
         

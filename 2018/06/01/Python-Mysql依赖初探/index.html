@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Python-Mysql依赖初探 |   【永恒依然】的博客 </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header">
+	
+  <nav class="header-nav">        
+   
+    <span class="iconfont icon-menu mobile-toggle"></span>   	
+
+    <!-- <a class="header-logo" href="/"></a> -->
+
+    <div class="header-menu">          
+              
+            
+
+              <a class="header-menu-link" id="header-menu-home" href="/">Home</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-archives" href="/archives">Archives</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-tags" href="/tags">Tags</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-about" href="/about">About</a>     
+
+            
+            
+            
+
+              <a class="iconfont icon-menu-search header-menu-link" id="header-menu-search"></a>
+
+            
+                
+    </div>  
+    
+  </nav>
+</header>   
+
+      <div class="container">       
+          
+          
+            <section class="main">  
+          
+
+          <article class="post">
+  
+	<div class="post-header">
+
+	<p class="post-title">	
+		Python-Mysql依赖初探
+	</p>
+			
+
+	<div class="meta-info">	
+	<span>
+		Jun 01, 2018
+	</span>
+
+	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			1434
+		</span>
+	
+</div>
+
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<h3 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h3><blockquote>
+<p>MySQL 5.7.17</p>
+<p>Python 2.7</p>
+<p>Mysql-python 1.2.5</p>
+</blockquote>
+<a id="more"></a>
+<p>　　MySQLdb是基于MySQL C API(原生MySQL API)为核心的面向Python的接口，封装了许多MySQL C API的方法，简化Python操作MySQL的难度。在原生的MySQL API中，万物皆String。(当然，可以通过自定义conv来实现数据类型的转化)。官方解释如下图所示：</p>
+<p><img src="./mysqldb_官方解释.png" alt="mysqldb_官方解释"></p>
+<p>　　Eg：原始的数据源中，age列是int类型，基于原生API查询后，所有的结果均为String类型；执行效果如下图所示：</p>
+<p><img src="./mysql原生写法.png" alt="mysql原生写法"></p>
+<p>　　可以通过自定义转换dict来实现查询结果的类型转换；具体的实现也很简单，只需要在mysql初始化的时候，自定义conv参数即可(eg：将SQL中int转化为Long，将SQL中的float转化为Double)，样例代码如下图所示：</p>
+<p><img src="./mysql原生写法_自定义conv参数.png" alt="mysql原生写法_自定义conv参数"></p>
+<p>　　由于原始API并不是那么的拿来主义，直接基于此操作需要care的东西太多，所以才有了MySQLdb这样简单易上手的第三方依赖包。MySQLdb带来的便捷主要体现在一下两点：</p>
+<ol>
+<li>封装并提供很多API接口，降低使用门槛</li>
+<li>自动适配原始SQL表的字段类型</li>
+</ol>
+<p>　　由于高级的API方法在实际工作中以用到很多，并且和其他语言的mysql驱动没太大差别，在这里不做讨论。重点分享一下第二点，在数据类型自定识别中，存在如下一种情况：<strong>基于MySQLdb查询int字段时，实际默认的返回类型是Long型，而非int</strong>。 Eg：</p>
+<p><img src="./mysqldb写法.png" alt="mysqldb写法"></p>
+<p>　　官方给出的解释是：<em>while MySQL’s INTEGER column translates perfectly into a Python integer, UNSIGNED INTEGER could overflow, so these values are converted to Python long integers instead</em>. 简单的说，就是<strong>MySQL的int类型转化为Python的int类型时，可能存在无符号整形精度丢失的情况</strong>。如何理解这句话：通过在程序中(Python)，不会刻意的定义一个无符号的整形变量，一般默认的int为有符号整形，eg：假如为int32，则对应的有符号整形的范围为：-2^(32-1) ~ 2^(32-1) - 1；相反无符号整数的范围为：0 ~ 2^32 - 1；所以当数据可中指定int为无符号整型时，程序中用有符号整形接受，就会存在因为数据范围不一致而导致的数据精度丢失情况。基于此原因，MySQLdb在设计时，为了规避该潜在问题，默认将int类型转化为long型。这就是为什么整形查询结果后面会带有L后缀的原因。</p>
+<p>　　当然MySQLdb也可以支持类似原生API那种通过自定义conv参数的方式来实现数据类型的自定义(不过不建议用户这样操作)。Eg：将SQL中Long转化为int，将SQL中的double转化为flout，代码样例如下图所示：</p>
+<p><img src="./mysqldb自定conv参数.png" alt="mysqldb自定conv参数"></p>
+<p>　　因为MySQLdb对应所有的mysql数据类型都有一套自己默认的转化映射关系(详见源码：MySQLdb.converters)，对于原生API，可以指定自己想转化的特定数据列；但是该方法在MySQLdb中并不那么的适用；如果要自定义数据类型，就必须指定所涵盖的所有数据列，这样很有可能因为枚举不够全面而导致程序报错的情况；所以在实际工作时，不建议在这一步转化数据类型，如有需要，在将数据加载到内存后，再转化成所需要的类型。</p>
+<p>参考链接：<a href="http://mysql-python.sourceforge.net/MySQLdb.html" target="_blank" rel="noopener">官方Doc</a> </p>
+  	
+					
+	  </div>     
+	  
+
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/MySQL/">MySQL</a> <a class="tag-link" href="/tags/MySQLdb/">MySQLdb</a> <a class="tag-link" href="/tags/Python/">Python</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar lazyload" src="/images/placeholder.png" data-src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+	</div>
+
+	<span class="donate-word">您的认可是我坚持下去的理由</span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2018/06/01/基于pandas的数据分析之数据类型转化踩坑总结/" data-hover="基于pandas的数据分析之数据类型转化踩坑总结"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
+    
+    <div id="disqus_thread"></div>
+
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
+
+
+	
+</article>
+
+          </section> 
+      </div>            
+    
+    <a id="backTop">
+      <span>
+        <i class="iconfont icon-backtotop"></i>
+      </span>
+    </a> 
+
+  
+    
+
+        
+        <div class="search-container sildeUpMin">
+
+
+            <div class="search-header">
+            <input type="text" placeholder="Typing Something here." id="search-input" class="search-input">  
+            <span class="search-cancel iconfont icon-cancel"></span>
+          
+            </div>
+              
+            <div id="search-result" class="search-result"></div>
+
+        </div>
+ 
+
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">Home
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">Archives
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">Tags
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">About
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">Search </a>                 
+            
+         
+      
+</div>        
+    
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?636802045446222199ae541e32c8133e"; 
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+
+
+     
+    
+
+
+
+
+<footer id="footer">	    
+
+		
+		<div class="footer-copyright">
+		&copy;
+		
+		2018		
+	
+		YHYR
+		<br>
+
+		Theme By
+		<a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>	
+		</div>			
+	 
+</footer>   
+
+  
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
