@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   
   
-  <title>  【永恒依然】的博客 </title>
+  <title>  基于Pandas的数据分析之数据类型转化踩坑总结 |   【永恒依然】的博客 </title>
 
  
   
@@ -68,85 +68,38 @@
             <section class="main">  
           
 
-          
+          <article class="post">
+  
+	<div class="post-header">
 
-
-<div class="profile sildeUpMin">
-
-		
-		<a href="/">
-			<img class="avatar" src="/images/header.jpg">
-		</a>
-		
-		<p class="author">永恒依然</p>
-		
-		<div class="social">
-   		      		
-		<a target="_blank" class="social-links" href="https://github.com/yhyr">		
-			<i class="iconfont icon-Github"></i>
-		</a>	
-	          		
-		<a target="_blank" class="social-links" href="">		
-			<i class="iconfont icon-Weibo"></i>
-		</a>	
-	          		
-		<a target="_blank" class="social-links" href="">		
-			<i class="iconfont icon-Zhihu"></i>
-		</a>	
-	          		
-		<a target="_blank" class="social-links" href="">		
-			<i class="iconfont icon-Facebook"></i>
-		</a>	
-	          		
-		<a target="_blank" class="social-links" href="">		
-			<i class="iconfont icon-Twitter"></i>
-		</a>	
-	          		
-		<a target="_blank" class="social-links" href="">		
-			<i class="iconfont icon-Instagram"></i>
-		</a>	
-	          		
-		<a target="_blank" class="social-links" href="">		
-			<i class="iconfont icon-LinkedIn"></i>
-		</a>	
-	    
-    	</div>		
-</div>
-
-      	  	
-
-  		
-    	<article class="article">		
-	   
-	<div class="article-header">
-	    
-	     <a class="article-title" href="/2018/06/01/基于pandas的数据分析之数据类型转化踩坑总结/">基于pandas的数据分析之数据类型转化踩坑总结</a>  
-	       
-		 
-
-		<div class="article-meta">
-		
-		Jun 01, 2018
-
-		
-			<span class="iconfont icon-star"></span>		 
-			            
-			<a class="article-tag" href="/tags/Python/">Python</a>           
-			            
-			<a class="article-tag" href="/tags/数据分析/">数据分析</a>           
+	<p class="post-title">	
+		基于pandas的数据分析之数据类型转化踩坑总结
+	</p>
 			
-		
-		</div>
 
-	</div>
-
+	<div class="meta-info">	
+	<span>
+		Jun 01, 2018
+	</span>
 
 	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			1411
+		</span>
+	
+</div>
 
-    
-	<div class="article-excerpt">	
-		 
-			<h3 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h3><blockquote>
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<h3 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h3><blockquote>
 <p>MySQL 5.7.17</p>
 <p>Python 2.7</p>
 <p>MySQL-python 1.2.5</p>
@@ -168,7 +121,7 @@
 <h2 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h2><p>　　通过查阅官方文档得知，pandas在处理缺失值上，拥有一套自己的转化逻辑；具体的转化规则如下图所示：</p>
 <p><img src="./pandas缺失值处理规则.png" alt="pandas缺失值处理规则"></p>
 <p>　　不难看出，当int型数据列包含空值时，会将该列转化为float类型；个人理解：在pandas中，对于数据类型的空值，是统一用Nan来表示的；Nan在pandas中是一float类型，代表一种特殊的值，而非其他语言中所定义的空对象；因此对于int类型的空值，因无法表示相应的空值，所以需要先做数据类型的转化，然后用Nan来表示其含义。</p>
-<p><img src="/images/placeholder.png" alt="Python_nan值类型" data-src="./Python_nan值类型.png" class="lazyload"></p>
+<p><img src="./Python_nan值类型.png" alt="Python_nan值类型"></p>
 <p>　　通过这个例子，希望在理解numeric类型转化原因的同时，能够提高对异常数据的警惕性和敏感度；理解业务，实现需求的同时，能有准确、有效的进行数据降噪，从而提升数据的真实性和可信度。</p>
 <h1 id="由于数值类型字符串导致从csv加载到DataFrame时String转numeric"><a href="#由于数值类型字符串导致从csv加载到DataFrame时String转numeric" class="headerlink" title="由于数值类型字符串导致从csv加载到DataFrame时String转numeric"></a>由于数值类型字符串导致从csv加载到DataFrame时String转numeric</h1><h2 id="缺失值"><a href="#缺失值" class="headerlink" title="缺失值"></a>缺失值</h2><p>缺失值分别在MySQL、Python和Pandas上的表现形式如下所示：</p>
 <table>
@@ -212,62 +165,121 @@
 <p><img src="/images/placeholder.png" alt="读csv指定数据类型" data-src="./读csv指定数据类型.png" class="lazyload"></p>
 <p><img src="/images/placeholder.png" alt="指定读取类型后的字段数据类型" data-src="./指定读取类型后的字段数据类型.png" class="lazyload"></p>
 <p>　　通过上述案例分析，希望今后在操作csv文件时注意区分空字符串和字符串空值在不同应用场景下的实际意义，以免造成潜在的数据隐患。</p>
+  	
+					
+	  </div>     
+	  
 
-		  	  
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/Python/">Python</a> <a class="tag-link" href="/tags/数据分析/">数据分析</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar lazyload" src="/images/placeholder.png" data-src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
 	</div>
 
-	<div class="article-bottom">
-		<a class="article-readmore" href="/2018/06/01/基于pandas的数据分析之数据类型转化踩坑总结/">Continue</a> 	</div>	
+	<span class="donate-word">您的认可是我坚持下去的理由</span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2018/05/28/基于GitHub-Pages-Hexo-多端搭建本地博客环境/" data-hover="基于GitHub Pages + Hexo 多端搭建本地博客环境"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
     
-</article>     
-     	
-      	  	
+    <div id="disqus_thread"></div>
 
-  		
-    	<article class="article">		
-	   
-	<div class="article-header">
-	    
-	     <a class="article-title" href="/2018/05/28/基于GitHub-Pages-Hexo-多端搭建本地博客环境/">基于GitHub Pages + Hexo 多端搭建本地博客环境</a>  
-	       
-		 
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
 
-		<div class="article-meta">
-		
-		May 28, 2018
-
-		
-			<span class="iconfont icon-star"></span>		 
-			            
-			<a class="article-tag" href="/tags/GitHub-Pages/">GitHub Pages</a>           
-			            
-			<a class="article-tag" href="/tags/Hexo/">Hexo</a>           
-			            
-			<a class="article-tag" href="/tags/博客搭建/">博客搭建</a>           
-			
-		
-		</div>
-
-	</div>
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
 
 
 	
-
-    
-	<div class="article-excerpt">	
-		
-			<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>阅读此文前，假定你已经了解如何基于GitHub Pages + Hexo来搭建个人博客。如果不了解的，可参考如下<a href="https://www.cnblogs.com/fengxiongZz/p/7707219.html" target="_blank" rel="noopener">教程</a>或<a href="http://crazymilk.github.io/2015/12/28/GitHub-Pages-Hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A2/" target="_blank" rel="noopener">教程</a>(就不重复造轮子了)；为自己的博客添加主题，其实也很简单：只需要在<a href="https://hexo.io/themes/" target="_blank" rel="noopener">Hexo</a>中挑选出自己心仪的风格，并将对应的源码从GitHub上clone到本地，并存放在你本地博客目录的themes路径下，并修改博客根目录的_config.yml文件，将theme: landscape中的landscape替换为你clone下来的文件夹名即可。具体操作参考<a href="http://www.cnblogs.com/fengxiongZz/p/7707568.html" target="_blank" rel="noopener">教程</a>。</p>
-		  	  
-	</div>
-
-	<div class="article-bottom">
-		<a class="article-readmore" href="/2018/05/28/基于GitHub-Pages-Hexo-多端搭建本地博客环境/">Continue</a> 	</div>	
-    
-</article>     
-     	
-  
-
-
+</article>
 
           </section> 
       </div>            
