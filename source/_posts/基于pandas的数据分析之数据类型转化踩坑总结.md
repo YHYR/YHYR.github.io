@@ -6,6 +6,13 @@ tags:
 	- 数据分析
 ---
 
+### 从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题
+
+1. 由于数据缺失导致DataFrame中int转float
+2. 由于数据类型字符串导致csv加载到DataFrame时String转numeric
+
+<!-- more -->
+
 ### 环境依赖
 
 > MySQL 5.7.17
@@ -15,11 +22,6 @@ tags:
 > MySQL-python 1.2.5
 >
 > Pandas 0.18.1
-
-### 从以下两个方面来讨论在实际工作中所遇到的数据类型转化问题
-
-1. 由于数据缺失导致DataFrame中int转float
-2. 由于数据类型字符串导致csv加载到DataFrame时String转numeric
 
 # 一、由于数据缺失导致DataFrame中int转float
 
