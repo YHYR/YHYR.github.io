@@ -13,7 +13,7 @@ tags:
 
 # multiprocessing.Process的join()方法
 
-　　通过[上篇博文](https://yhyr.github.io/2018/06/02/%E5%9F%BA%E4%BA%8EPython%E5%88%9D%E6%8E%A2Linux%E4%B8%8B%E7%9A%84%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B%E5%92%8C%E5%AD%A4%E5%84%BF%E8%BF%9B%E7%A8%8B/)可以看出join()方法具有清除僵尸进程的作用，与此同时带来的负面作用就是子父进程的串行执行(此处假设我们的目标是保证子父进程的执行方式是非阻塞的；对于实际需求是需要父进程阻塞等待子进程结束后在执行的应用场景，可以忽略本篇博文)。接下来将从join的底层实现出发探究其能够清楚僵尸进程的原因和阻塞执行的方式；同时基于一个demo来给出实际工作中如何准确有效的避免和消除僵尸进程。
+　　通过[上篇博文](https://yhyr.github.io/2018/06/07/%E5%9F%BA%E4%BA%8EPython%E5%88%9D%E6%8E%A2Linux%E4%B8%8B%E7%9A%84%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B%E5%92%8C%E5%AD%A4%E5%84%BF%E8%BF%9B%E7%A8%8B-%E4%B8%80/)可以看出join()方法具有清除僵尸进程的作用，与此同时带来的负面作用就是子父进程的串行执行(此处假设我们的目标是保证子父进程的执行方式是非阻塞的；对于实际需求是需要父进程阻塞等待子进程结束后在执行的应用场景，可以忽略本篇博文)。接下来将从join的底层实现出发探究其能够清楚僵尸进程的原因和阻塞执行的方式；同时基于一个demo来给出实际工作中如何准确有效的避免和消除僵尸进程。
 
 ## join初探
 
@@ -24,7 +24,7 @@ tags:
 1.  (1) 通知父进程调用wait方法
 2.  (2) 将该子进程从父进程的子进程列表中移除
 
-　　第一件事调用wait方法背后的实际调用链是：process模块的join()  => forking模块的Popen.wait()，实则是调用了os.waitpd方法【注意这里的Popen根据操作系统的不同而不同，分为Union/Linux和Windows两种】；至于为什么要调用该方法可以看我[上篇博文](https://yhyr.github.io/2018/06/02/%E5%9F%BA%E4%BA%8EPython%E5%88%9D%E6%8E%A2Linux%E4%B8%8B%E7%9A%84%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B%E5%92%8C%E5%AD%A4%E5%84%BF%E8%BF%9B%E7%A8%8B/)中有关Linux进程基本概念模块的描述。
+　　第一件事调用wait方法背后的实际调用链是：process模块的join()  => forking模块的Popen.wait()，实则是调用了os.waitpd方法【注意这里的Popen根据操作系统的不同而不同，分为Union/Linux和Windows两种】；至于为什么要调用该方法可以看我[上篇博文](https://yhyr.github.io/2018/06/07/%E5%9F%BA%E4%BA%8EPython%E5%88%9D%E6%8E%A2Linux%E4%B8%8B%E7%9A%84%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B%E5%92%8C%E5%AD%A4%E5%84%BF%E8%BF%9B%E7%A8%8B-%E4%B8%80/)中有关Linux进程基本概念模块的描述。
 
 ![join底层调用](./join底层调用.png)
 
