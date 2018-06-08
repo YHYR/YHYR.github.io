@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
 # 场景抽象
 
-　　为了方便举例，将上述实际业务场景抽象成一个简单的demo：当主进程开始启动时，会新建一个子进程，此时子父进程是并行执行；当主进程执行了15秒后会再启动一个子进程(此处模拟再次消费kafka消息)，在新建子进程的时候上一个子进程已经结束；样例代码如下：
+　　为了方便举例，将上述实际业务场景抽象成一个简单的demo：当主进程开始启动时，会新建一个子进程，此时子父进程是并行执行；当主进程执行了10秒后会再启动一个子进程(此处模拟再次消费kafka消息)，在新建子进程的时候上一个子进程已经结束；样例代码如下：
 
 ```python
 # -*- coding: utf-8 -*-
@@ -102,7 +102,7 @@ class MainProcess:
         for i in range(self.main_process_time):
             print('main process, pid={0}, ppid={1}, times={2}'.format(os.getpid(), os.getppid(), i))
             time.sleep(1)
-            if i == 15:
+            if i == 10:
                 p = ChildProcess(self.child_process_time)
                 p.start()
 
@@ -127,7 +127,6 @@ if __name__ == '__main__':
     child_process_time = 5
     action = MainProcess(main_process_time, child_process_time)
     action.excutor()
-
 ```
 
 代码的执行逻辑如下所述：
