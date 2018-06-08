@@ -260,14 +260,16 @@ if sys.platform != 'win32':
 
 　　接下来分析一下Popen类：初始化Popen时，首先会调用Unix/Linux的fork来新建一个子进程；了解过Linux进程的人都知道，调用fork后会产生两个进程，父进程的返回值为子进程的进程id，子进程返回0；可以将fork的返回值理解为所产生的子进程的pid，因为经过fork后，原本的父进程有了子进程，所以父进程的返回值为子进程的pid；因为所产生的子进程没有自己的子进程，所以它的返回值为0；因此在初始化Popen时，如果fork后当前进程为父进程则直接忽略不做处理，如果是子进程，则会首先通过`code = process_obj._bootstrap()`获取到父进程的pid，然后调用`os._exit(code)`强制退出主进程，从而保证经过初始化后只有一个新建的子进程。
 
-　　因为wait实际调用的是poll方法，所以在这里重点看一点poll方法：
+　　因为wait方法的本质还是调用poll方法，所以在这里重点看一点poll方法：调用系统的os.waitpid()方法来释放子进程的退出状态信息，如果成功释放则函数返回退出状态码returncode；反之如果子进程并未结束，则直接退出并返回None。
+
+# 总结
+
+　　multiprocessing基于Linux平台实现多进程实则是基于fork来新建子进程的；调用p.start()的实质就是new一个Popen类(该类返回新建的子进程，并关闭对应的父进程)；与此同时p.start()会主动对子进程列表做一次清理操作(该操作是非阻塞的)；调用p.join()的本质是调用forking模块的Popen.wait()方法(该操作是阻塞的)。所以理解Popen是了解Python-multiprocessing的一个比较重要的前提。附上proces模块和forking模块之间的对象模型图。
 
 
 
+![process对象模型图](./process对象模型图.png)
 
+## 未完待续
 
-
-
-# 待研究
-
-os.eixt(pid)的真正含义
+常见的几种进程退出的方式对比分析(sys.exit(), os._exit())
