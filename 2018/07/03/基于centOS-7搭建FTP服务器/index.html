@@ -86,7 +86,7 @@
 	
 		<i class="iconfont icon-words"></i>
 		<span>
-			5768
+			5865
 		</span>
 	
 </div>
@@ -207,6 +207,9 @@
 <h3 id="Step-1-创建虚拟用户的数据存储目录"><a href="#Step-1-创建虚拟用户的数据存储目录" class="headerlink" title="Step 1: 创建虚拟用户的数据存储目录"></a>Step 1: 创建虚拟用户的数据存储目录</h3><p>假设有两个虚拟用户：</p>
 <p>guest_user_1对应的数据存储目录为/data/ftp_data/guest_user_1</p>
 <p>guest_user_1对应的数据存储目录为/data/ftp_data/guest_user_2</p>
+<font color="red">注：需要把数据目录的用户组信息设置为guest_username所指定的用户</font>
+
+<p>Eg：<code>chown yhyr:yhyr guest_user_1</code>、<code>chown yhyr:yhyr guest_user_2</code></p>
 <h3 id="Step-2：指定虚拟用户的数据存储路径"><a href="#Step-2：指定虚拟用户的数据存储路径" class="headerlink" title="Step 2：指定虚拟用户的数据存储路径"></a>Step 2：指定虚拟用户的数据存储路径</h3><p>在/etc/vsftpd目录下新建一个guestuserconf目录，并在该目录下分别新建两个文件：guest_user_1和guest_user_2(文件名和虚拟用户的用户名保持一致)。在文件中添加local_root配置项指定该虚拟用户的数据存储路径：</p>
 <p><img src="/images/placeholder.png" alt="虚拟用户user_config_dir配置" data-src="./25.png" class="lazyload"></p>
 <h3 id="Step-3：设置虚拟用户的用户名和密码"><a href="#Step-3：设置虚拟用户的用户名和密码" class="headerlink" title="Step 3：设置虚拟用户的用户名和密码"></a>Step 3：设置虚拟用户的用户名和密码</h3><p><font color="red">首先在/etc/vsftpd下新建一个guest_user_passwd文件</font>，该文件记录虚拟用户的用户名和密码信息(<strong>注：奇数行为用户名，偶数行为密码</strong>)，如下图所示，设置guest_user_1的密码为123456，设置guest_user_2的密码为abcdef</p>
