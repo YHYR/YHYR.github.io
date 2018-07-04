@@ -224,6 +224,10 @@ guest_user_1对应的数据存储目录为/data/ftp_data/guest_user\_1
 
 guest_user_1对应的数据存储目录为/data/ftp_data/guest_user\_2
 
+<font color=red>注：需要把数据目录的用户组信息设置为guest_username所指定的用户</font>
+
+Eg：`chown yhyr:yhyr guest_user_1`、`chown yhyr:yhyr guest_user_2`
+
 ### Step 2：指定虚拟用户的数据存储路径
 
 在/etc/vsftpd目录下新建一个guestuserconf目录，并在该目录下分别新建两个文件：guest_user_1和guest_user\_2(文件名和虚拟用户的用户名保持一致)。在文件中添加local_root配置项指定该虚拟用户的数据存储路径：
