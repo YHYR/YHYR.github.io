@@ -32,7 +32,125 @@ tags:
 
 接下来将从深入源码来探究这种情况发生的原因；pd.read_json()的源码及其该方法之间的调用时序分别如下所示：
 
-![read_json源码](./read_json源码.png)
+```python
+def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
+              convert_axes=True, convert_dates=True, keep_default_dates=True,
+              numpy=False, precise_float=False, date_unit=None):
+    """
+    Convert a JSON string to pandas object
+
+    Parameters
+    ----------
+    path_or_buf : a valid JSON string or file-like, default: None
+        The string could be a URL. Valid URL schemes include http, ftp, s3, and
+        file. For file URLs, a host is expected. For instance, a local file
+        could be ``file://localhost/path/to/table.json``
+
+    orient
+
+        * `Series`
+
+          - default is ``'index'``
+          - allowed values are: ``{'split','records','index'}``
+          - The Series index must be unique for orient ``'index'``.
+
+        * `DataFrame`
+
+          - default is ``'columns'``
+          - allowed values are: {'split','records','index','columns','values'}
+          - The DataFrame index must be unique for orients 'index' and
+            'columns'.
+          - The DataFrame columns must be unique for orients 'index',
+            'columns', and 'records'.
+
+        * The format of the JSON string
+
+          - split : dict like
+            ``{index -> [index], columns -> [columns], data -> [values]}``
+          - records : list like
+            ``[{column -> value}, ... , {column -> value}]``
+          - index : dict like ``{index -> {column -> value}}``
+          - columns : dict like ``{column -> {index -> value}}``
+          - values : just the values array
+
+    typ : type of object to recover (series or frame), default 'frame'
+    dtype : boolean or dict, default True
+        If True, infer dtypes, if a dict of column to dtype, then use those,
+        if False, then don't infer dtypes at all, applies only to the data.
+    convert_axes : boolean, default True
+        Try to convert the axes to the proper dtypes.
+    convert_dates : boolean, default True
+        List of columns to parse for dates; If True, then try to parse
+        datelike columns default is True; a column label is datelike if
+
+        * it ends with ``'_at'``,
+
+        * it ends with ``'_time'``,
+
+        * it begins with ``'timestamp'``,
+
+        * it is ``'modified'``, or
+
+        * it is ``'date'``
+
+    keep_default_dates : boolean, default True
+        If parsing dates, then parse the default datelike columns
+    numpy : boolean, default False
+        Direct decoding to numpy arrays. Supports numeric data only, but
+        non-numeric column and index labels are supported. Note also that the
+        JSON ordering MUST be the same for each term if numpy=True.
+    precise_float : boolean, default False
+        Set to enable usage of higher precision (strtod) function when
+        decoding string to double values. Default (False) is to use fast but
+        less precise builtin functionality
+    date_unit : string, default None
+        The timestamp unit to detect if converting dates. The default behaviour
+        is to try and detect the correct precision, but if this is not desired
+        then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
+        milliseconds, microseconds or nanoseconds respectively.
+
+    Returns
+    -------
+    result : Series or DataFrame
+    """
+
+    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf)
+    if isinstance(filepath_or_buffer, compat.string_types):
+        try:
+            exists = os.path.exists(filepath_or_buffer)
+
+        # if the filepath is too long will raise here
+        # 5874
+        except (TypeError, ValueError):
+            exists = False
+
+        if exists:
+            with open(filepath_or_buffer, 'r') as fh:
+                json = fh.read()
+        else:
+            json = filepath_or_buffer
+    elif hasattr(filepath_or_buffer, 'read'):
+        json = filepath_or_buffer.read()
+    else:
+        json = filepath_or_buffer
+
+    obj = None
+    if typ == 'frame':
+        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates,
+                          keep_default_dates, numpy, precise_float,
+                          date_unit).parse()
+
+    if typ == 'series' or obj is None:
+        if not isinstance(dtype, bool):
+            dtype = dict(data=dtype)
+        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates,
+                           keep_default_dates, numpy, precise_float,
+                           date_unit).parse()
+
+    return obj
+```
+
+
 
 ![read_json方法间调用时序](./readJson方法间调用时序.png)
 
@@ -44,11 +162,59 @@ tags:
 
 ![Parse.parse源码](./Parse.parse源码.png)
 
+```python
+    def parse(self):
+
+        # try numpy
+        numpy = self.numpy
+        if numpy:
+            self._parse_numpy()
+
+        else:
+            self._parse_no_numpy()
+
+        if self.obj is None:
+            return None
+        if self.convert_axes:
+            self._convert_axes()
+        self._try_convert_types()
+        return self.obj
+```
+
+
+
 ![Parse.parse方法间调用时序](./Parse.parse方法间调用时序.png)
 
-　　在解析jsonStr时，首先会根据参数numpy来判断是否需要将数据反序列化为numpy数组类型；这个反序列化的过程是通过Pandas内部封装的json工具类的loads方法来实现的；然后将反序列化后的Dict对象经过DataFrame类进行数据初始化，从而得到该jsonFile所对应的DataFrame数据结构。由于`_parse_no_numpy()` 和`_parse_numpy()`这两个方法的原理类似，这里以`_parse_numpy()`为例，看一下对应的源码：
+　　在解析jsonStr时，首先会根据参数numpy来判断是否需要将数据反序列化为numpy数组类型；这个反序列化的过程是通过Pandas内部封装的json工具类的loads方法来实现的；然后将反序列化后的Dict对象经过DataFrame类进行数据初始化，从而得到该jsonFile所对应的DataFrame数据结构。由于`_parse_no_numpy()` 和`_parse_numpy()`这两个方法的原理类似，这里以`FrameParse._parse_numpy()`为例，看一下对应的源码：
 
-![parse_numpy源码](./parse_numpy源码.png)
+```python
+    def _parse_numpy(self):
+
+        json = self.json
+        orient = self.orient
+
+        if orient == "columns":
+            args = loads(json, dtype=None, numpy=True, labelled=True,
+                         precise_float=self.precise_float)
+            if args:
+                args = (args[0].T, args[2], args[1])
+            self.obj = DataFrame(*args)
+        elif orient == "split":
+            decoded = loads(json, dtype=None, numpy=True,
+                            precise_float=self.precise_float)
+            decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
+            self.check_keys_split(decoded)
+            self.obj = DataFrame(**decoded)
+        elif orient == "values":
+            self.obj = DataFrame(loads(json, dtype=None, numpy=True,
+                                       precise_float=self.precise_float))
+        else:
+            self.obj = DataFrame(*loads(json, dtype=None, numpy=True,
+                                        labelled=True,
+                                        precise_float=self.precise_float))
+```
+
+
 
 　　**注意这里的写法**：父类Parse中是没有`_parse_no_numpy()` 和`_parse_numpy()`这两个方法的，也就是说是在父类调用子类的方法。其实不同于Java这类编程语言，在Python中需要从对象生成的角度来看待这个问题；因为此时的Parse类就是FrameParser，所以`self._parse_no_numpy()`的调用本质就是其实现类自身的方法，所以就有了这种看似奇怪的父调子写法。
 
@@ -70,9 +236,83 @@ tags:
 
 　　跳过日期类型转化后，就来到最后一步，数据的数值类型转化尝试。方法`_process_converter()`可以抽象的理解为一个数据转化工具类，负责对数据集中的每一列数据按照指定的转化规则进行转化尝试；该方法的第一个参数类型是一个方法，作用就是指定需要对数据列做哪种转化。在这里传入父类的`Parse._try_convert_data()`方法，该方法的作用就是尝试将数据转化成数值类型；该方法的源码如下所示：
 
-![try_convert_data源码1](./try_convert_data源码1.png)
+```python
+    def _try_convert_data(self, name, data, use_dtypes=True,
+                          convert_dates=True):
+        """ try to parse a ndarray like into a column by inferring dtype """
 
-![try_convert_data源码2](./try_convert_data源码2.png)
+        # don't try to coerce, unless a force conversion
+        if use_dtypes:
+            if self.dtype is False:
+                return data, False
+            elif self.dtype is True:
+                pass
+
+            else:
+
+                # dtype to force
+                dtype = (self.dtype.get(name)
+                         if isinstance(self.dtype, dict) else self.dtype)
+                if dtype is not None:
+                    try:
+                        dtype = np.dtype(dtype)
+                        return data.astype(dtype), True
+                    except:
+                        return data, False
+
+        if convert_dates:
+            new_data, result = self._try_convert_to_date(data)
+            if result:
+                return new_data, True
+
+        result = False
+
+        if data.dtype == 'object':
+
+            # try float
+            try:
+                data = data.astype('float64')
+                result = True
+            except:
+                pass
+
+        if data.dtype.kind == 'f':
+
+            if data.dtype != 'float64':
+
+                # coerce floats to 64
+                try:
+                    data = data.astype('float64')
+                    result = True
+                except:
+                    pass
+
+        # do't coerce 0-len data
+        if len(data) and (data.dtype == 'float' or data.dtype == 'object'):
+
+            # coerce ints if we can
+            try:
+                new_data = data.astype('int64')
+                if (new_data == data).all():
+                    data = new_data
+                    result = True
+            except:
+                pass
+
+        # coerce ints to 64
+        if data.dtype == 'int':
+
+            # coerce floats to 64
+            try:
+                data = data.astype('int64')
+                result = True
+            except:
+                pass
+
+        return data, result
+```
+
+
 
 　　回顾一下文章一开始提到的例子，具体的调用方法为`pd.read_json(filePath)`，则通过查看源码的参数注解可知dtype默认为True，此时在方法`_try_convert_data`里，由于user_dtypes和dtype同为True，convert_dates为False，所以代码直接跳过前面的逻辑判断和时间类型转化尝试，直接进入数值类型的转化尝试中，读完源码就可以看到数据会先尝试转化成float64类型，然后尝试转化为int64类型。通过一步步的Debug，也终于找到问题发生的根源：当代码经过如下位置时，查看一下此时对应的数据结果，如下图所示：
 
