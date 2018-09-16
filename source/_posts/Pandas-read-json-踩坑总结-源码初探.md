@@ -160,10 +160,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
 　　由于Series的解析逻辑比较简单，且实际工作中直接基于DataFrame的操作比较多，因此这里主要对jsonStr解析成DataFrame的过程做进一步的梳理。在第三步数据解析的过程中，`FrameParser.parse()`方法的本质其实是调用了父类Parse的parse方法，该方法的职能有三个：首先将jsonStr解析成DataFrame数据结构；其次对解析结果的轴做数据类型转化；最后<font color="red">尝试对数据进行类型转化</font>。源码及对应的方法间调用时序如下图所示：
 
-![Parse.parse源码](./Parse.parse源码.png)
-
 ```python
-    def parse(self):
+  def parse(self):
 
         # try numpy
         numpy = self.numpy
@@ -180,8 +178,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         self._try_convert_types()
         return self.obj
 ```
-
-
 
 ![Parse.parse方法间调用时序](./Parse.parse方法间调用时序.png)
 
