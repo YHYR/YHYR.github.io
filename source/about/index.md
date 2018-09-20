@@ -11,11 +11,15 @@ date: 2018-05-31 20:48:16
 >
 > Location	|  Iflytek HeFei CN
 >
-> Email	|  295688471@qq.com
+> Email	|  yhyr.ycy@gmail.com
 
 ***
 
-***
+
+
+<center>![about_bg_pic](./index/about_bg_pic.jpg)</center>
+
+<center>横向划领域，纵向分方向；领域内求广度，方向内求深度</center>
 
 # Tools Recommend
 
