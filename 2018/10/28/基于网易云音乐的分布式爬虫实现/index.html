@@ -1,0 +1,355 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  基于网易云音乐的分布式爬虫实现 |   【永恒依然】的博客 </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header">
+	
+  <nav class="header-nav">        
+   
+    <span class="iconfont icon-menu mobile-toggle"></span>   	
+
+    <!-- <a class="header-logo" href="/"></a> -->
+
+    <div class="header-menu">          
+              
+            
+
+              <a class="header-menu-link" id="header-menu-home" href="/">Home</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-archives" href="/archives">Archives</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-tags" href="/tags">Tags</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-about" href="/about">About</a>     
+
+            
+            
+            
+
+              <a class="iconfont icon-menu-search header-menu-link" id="header-menu-search"></a>
+
+            
+                
+    </div>  
+    
+  </nav>
+</header>   
+
+      <div class="container">       
+          
+          
+            <section class="main">  
+          
+
+          <article class="post">
+  
+	<div class="post-header">
+
+	<p class="post-title">	
+		基于网易云音乐的分布式爬虫实现
+	</p>
+			
+
+	<div class="meta-info">	
+	<span>
+		Oct 28, 2018
+	</span>
+
+	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			5432
+		</span>
+	
+</div>
+
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<p>通过scrapy-redis + HDFS 实现网易云音乐的用户、评论数据的爬取和持久化。源代码详见<a href="https://github.com/YHYR/CloudMusicSpider" target="_blank" rel="noopener">Github</a></p>
+<a id="more"></a>
+<h1 id="Prepare"><a href="#Prepare" class="headerlink" title="Prepare"></a>Prepare</h1><h4 id="Python-版本"><a href="#Python-版本" class="headerlink" title="Python 版本"></a>Python 版本</h4><blockquote>
+<p>Python 3.6.5</p>
+</blockquote>
+<h4 id="依赖包"><a href="#依赖包" class="headerlink" title="依赖包"></a>依赖包</h4><blockquote>
+<p>scrapy_redis</p>
+<p>redis</p>
+<p>mysql-python</p>
+<p>kafka-python</p>
+<p>hdfs</p>
+</blockquote>
+<h3 id="数据API接口"><a href="#数据API接口" class="headerlink" title="数据API接口"></a>数据API接口</h3><blockquote>
+<p>详见<a href="https://github.com/YHYR/CloudMusicSpider" target="_blank" rel="noopener">Github</a></p>
+</blockquote>
+<h1 id="Implement"><a href="#Implement" class="headerlink" title="Implement"></a>Implement</h1><h3 id="数据依赖关系"><a href="#数据依赖关系" class="headerlink" title="数据依赖关系"></a>数据依赖关系</h3><p><img src="./数据关系.png" alt="数据关系"></p>
+<h3 id="时序"><a href="#时序" class="headerlink" title="时序"></a>时序</h3><p><img src="./爬虫时序.png" alt="爬虫时序"></p>
+<p>　　上图详细说明了整个爬虫工程的前一半的数据抽取逻辑；关于用户类数据的抽取在实现逻辑上与上图基本一致。在用户相关数据的爬取上，实现了在尽可能多的爬取用户数据的同时，有效规避重复爬取。实现逻辑如下：</p>
+<p>　　<strong>在代码实现层面上，显示的指定用户相关数据的爬取逻辑</strong>。优先级为：用户基本信息 &gt; 用户粉丝信息 = 用户关注信息 = 用户听歌记录。即就是只有在爬取到一个用户的基本信息以后，才初始化这个用户的附属信息的URL(例：粉丝列表、关注列表、听歌记录)。这样就可以保证只要爬取用户基本信息时不重复，则附属属性数据的爬取就不会重复。所以在Redis中单独维护一个用户UserId的数据集，每当爬取歌曲的评论数据、用户的粉丝或者关注者数据时，都会先校验当前用户是否在该数据集内；如果不在则初始化用户的基本信息URL到请求队列中，反之则认为该用户已经爬取过。</p>
+<p>　　为了提升用户数据量，在收集歌曲评论中所涉及到的用户信息的同时，深度爬取每个用户所对应的关注和粉丝列表的信息。</p>
+<h1 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h1><p>　由于我们的数据链路存在一定的依赖关系，但也并非是单线程的地步。所以在具体实现时采用scrapy-redis框架来实现分布式的效果。在请求队列上，可以为每一个Spider在Redis中开辟一个Request队列，这样有效的提升爬取效率。当然要想持续爬取，加代理也是必不可少的。有关免费代理IP的爬取和校验的实现，可详见<a href="https://github.com/YHYR/ProxyIpSpider" target="_blank" rel="noopener">Github</a>。</p>
+<p>需要注意的是，scrapy-redis不支持在请求队列中实现去重。源码如下所示：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RedisMixin</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"""Mixin class to implement reading urls from a redis queue."""</span></span><br><span class="line">    redis_key = <span class="keyword">None</span></span><br><span class="line">    redis_batch_size = <span class="keyword">None</span></span><br><span class="line">    redis_encoding = <span class="keyword">None</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Redis client placeholder.</span></span><br><span class="line">    server = <span class="keyword">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">start_requests</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""Returns a batch of start requests from redis."""</span></span><br><span class="line">        <span class="keyword">return</span> self.next_requests()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">setup_redis</span><span class="params">(self, crawler=None)</span>:</span></span><br><span class="line">        <span class="string">"""Setup redis connection and idle signal.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        This should be called after the spider has set its crawler object.</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        <span class="keyword">if</span> self.server <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> crawler <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">            <span class="comment"># We allow optional crawler argument to keep backwards</span></span><br><span class="line">            <span class="comment"># compatibility.</span></span><br><span class="line">            <span class="comment"># <span class="doctag">XXX:</span> Raise a deprecation warning.</span></span><br><span class="line">            crawler = getattr(self, <span class="string">'crawler'</span>, <span class="keyword">None</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> crawler <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"crawler is required"</span>)</span><br><span class="line"></span><br><span class="line">        settings = crawler.settings</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> self.redis_key <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">            self.redis_key = settings.get(</span><br><span class="line">                <span class="string">'REDIS_START_URLS_KEY'</span>, defaults.START_URLS_KEY,</span><br><span class="line">            )</span><br><span class="line"></span><br><span class="line">        self.redis_key = self.redis_key % &#123;<span class="string">'name'</span>: self.name&#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.redis_key.strip():</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"redis_key must not be empty"</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> self.redis_batch_size <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">            <span class="comment"># <span class="doctag">TODO:</span> Deprecate this setting (REDIS_START_URLS_BATCH_SIZE).</span></span><br><span class="line">            self.redis_batch_size = settings.getint(</span><br><span class="line">                <span class="string">'REDIS_START_URLS_BATCH_SIZE'</span>,</span><br><span class="line">                settings.getint(<span class="string">'CONCURRENT_REQUESTS'</span>),</span><br><span class="line">            )</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self.redis_batch_size = int(self.redis_batch_size)</span><br><span class="line">        <span class="keyword">except</span> (TypeError, ValueError):</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"redis_batch_size must be an integer"</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> self.redis_encoding <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">            self.redis_encoding = settings.get(<span class="string">'REDIS_ENCODING'</span>, defaults.REDIS_ENCODING)</span><br><span class="line"></span><br><span class="line">        self.logger.info(<span class="string">"Reading start URLs from redis key '%(redis_key)s' "</span></span><br><span class="line">                         <span class="string">"(batch size: %(redis_batch_size)s, encoding: %(redis_encoding)s"</span>,</span><br><span class="line">                         self.__dict__)</span><br><span class="line"></span><br><span class="line">        self.server = connection.from_settings(crawler.settings)</span><br><span class="line">        <span class="comment"># The idle signal is called when the spider has no requests left,</span></span><br><span class="line">        <span class="comment"># that's when we will schedule new requests from redis queue</span></span><br><span class="line">        crawler.signals.connect(self.spider_idle, signal=signals.spider_idle)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">next_requests</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""Returns a request to be scheduled or none."""</span></span><br><span class="line">        use_set = self.settings.getbool(<span class="string">'REDIS_START_URLS_AS_SET'</span>, defaults.START_URLS_AS_SET)</span><br><span class="line">        fetch_one = self.server.spop <span class="keyword">if</span> use_set <span class="keyword">else</span> self.server.lpop</span><br><span class="line">        <span class="comment"># <span class="doctag">XXX:</span> Do we need to use a timeout here?</span></span><br><span class="line">        found = <span class="number">0</span></span><br><span class="line">        <span class="comment"># <span class="doctag">TODO:</span> Use redis pipeline execution.</span></span><br><span class="line">        <span class="keyword">while</span> found &lt; self.redis_batch_size:</span><br><span class="line">            data = fetch_one(self.redis_key)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> data:</span><br><span class="line">                <span class="comment"># Queue empty.</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            req = self.make_request_from_data(data)</span><br><span class="line">            <span class="keyword">if</span> req:</span><br><span class="line">                <span class="keyword">yield</span> req</span><br><span class="line">                found += <span class="number">1</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                self.logger.debug(<span class="string">"Request not made from data: %r"</span>, data)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> found:</span><br><span class="line">            self.logger.debug(<span class="string">"Read %s requests from '%s'"</span>, found, self.redis_key)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">make_request_from_data</span><span class="params">(self, data)</span>:</span></span><br><span class="line">        <span class="string">"""Returns a Request instance from data coming from Redis.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        By default, ``data`` is an encoded URL. You can override this method to</span></span><br><span class="line"><span class="string">        provide your own message decoding.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        Parameters</span></span><br><span class="line"><span class="string">        ----------</span></span><br><span class="line"><span class="string">        data : bytes</span></span><br><span class="line"><span class="string">            Message from redis.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        url = bytes_to_str(data, self.redis_encoding)</span><br><span class="line">        <span class="keyword">return</span> self.make_requests_from_url(url)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">schedule_next_requests</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""Schedules a request if available"""</span></span><br><span class="line">        <span class="comment"># <span class="doctag">TODO:</span> While there is capacity, schedule a batch of redis requests.</span></span><br><span class="line">        <span class="keyword">for</span> req <span class="keyword">in</span> self.next_requests():</span><br><span class="line">            self.crawler.engine.crawl(req, spider=self)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">spider_idle</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""Schedules a request if available, otherwise waits."""</span></span><br><span class="line">        <span class="comment"># <span class="doctag">XXX:</span> Handle a sentinel to close the spider.</span></span><br><span class="line">        self.schedule_next_requests()</span><br><span class="line">        <span class="keyword">raise</span> DontCloseSpider</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RedisCrawlSpider</span><span class="params">(RedisMixin, CrawlSpider)</span>:</span></span><br><span class="line">    <span class="string">"""Spider that reads urls from redis queue when idle.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Attributes</span></span><br><span class="line"><span class="string">    ----------</span></span><br><span class="line"><span class="string">    redis_key : str (default: REDIS_START_URLS_KEY)</span></span><br><span class="line"><span class="string">        Redis key where to fetch start URLs from..</span></span><br><span class="line"><span class="string">    redis_batch_size : int (default: CONCURRENT_REQUESTS)</span></span><br><span class="line"><span class="string">        Number of messages to fetch from redis on each attempt.</span></span><br><span class="line"><span class="string">    redis_encoding : str (default: REDIS_ENCODING)</span></span><br><span class="line"><span class="string">        Encoding to use when decoding messages from redis queue.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Settings</span></span><br><span class="line"><span class="string">    --------</span></span><br><span class="line"><span class="string">    REDIS_START_URLS_KEY : str (default: "&lt;spider.name&gt;:start_urls")</span></span><br><span class="line"><span class="string">        Default Redis key where to fetch start URLs from..</span></span><br><span class="line"><span class="string">    REDIS_START_URLS_BATCH_SIZE : int (deprecated by CONCURRENT_REQUESTS)</span></span><br><span class="line"><span class="string">        Default number of messages to fetch from redis on each attempt.</span></span><br><span class="line"><span class="string">    REDIS_START_URLS_AS_SET : bool (default: True)</span></span><br><span class="line"><span class="string">        Use SET operations to retrieve messages from the redis queue.</span></span><br><span class="line"><span class="string">    REDIS_ENCODING : str (default: "utf-8")</span></span><br><span class="line"><span class="string">        Default encoding to use when decoding messages from redis queue.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">from_crawler</span><span class="params">(self, crawler, *args, **kwargs)</span>:</span></span><br><span class="line">        obj = super(RedisCrawlSpider, self).from_crawler(crawler, *args, **kwargs)</span><br><span class="line">        obj.setup_redis(crawler)</span><br><span class="line">        <span class="keyword">return</span> obj</span><br></pre></td></tr></table></figure>
+<p>　　当启动一个Spider后，就会读取Redis中指定key下的url信息。如果当前key下没有相应的value就等待；当有值时，则会调用<code>next_requests</code>方法来获取数据；查看方法next_requests的源码不难看出，<strong>无论你当前的key的数据类型是什么，最终都会pop掉</strong>，从而导致Redis中不在有这个值。这也就是上述中提到的为什么要自己通过维护userId数据集来实现抽取的唯一性，而不是用这个请求队列作为唯一性校验的原因。对于一个正常的设计，应该是在项目运行一段时间后会出现所有的Spider都处于挂起等待的状态，此时所涉及到的所有请求队列应该均为空；否则就有可能因为设计问题导致无限死循环，从而出现永不休止的爬取相同数据。</p>
+<p>　　Scrapy-Redis自带的去重功能目前还未研究，效果如何暂不做评论；不过网上有很多关于修改源码通过实现去重逻辑，有兴趣的可查阅有关BloomFilter相关的资料。</p>
+<h2 id="答谢"><a href="#答谢" class="headerlink" title="答谢"></a>答谢</h2><p>感谢<a href="https://github.com/sqaiyan/netmusic-node" target="_blank" rel="noopener">sqaiyan</a>在数据API上给予的灵感</p>
+<p>感谢<a href="https://github.com/LiuXingMing/SinaSpider" target="_blank" rel="noopener">LiuXingMing</a>在分布式爬虫实现上给予的灵感</p>
+  	
+					
+	  </div>     
+	  
+
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/Python/">Python</a> <a class="tag-link" href="/tags/爬虫/">爬虫</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar" src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img" src="/images/donate_wechat.png" alt="No Donate Image!">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img" src="/images/donate_wechat.png" alt="No Donate Image!">	
+	</div>
+
+	<span class="donate-word">您的认可是我坚持下去的理由</span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2018/09/16/Pandas-read-json-踩坑总结-源码初探/" data-hover="Pandas.read_json()踩坑总结 &amp; 源码初探"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
+    
+    <div id="disqus_thread"></div>
+
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
+
+
+	
+</article>
+
+          </section> 
+      </div>            
+    
+    <a id="backTop">
+      <span>
+        <i class="iconfont icon-backtotop"></i>
+      </span>
+    </a> 
+
+  
+    
+
+        
+        <div class="search-container sildeUpMin">
+
+
+            <div class="search-header">
+            <input type="text" placeholder="Typing Something here." id="search-input" class="search-input">  
+            <span class="search-cancel iconfont icon-cancel"></span>
+          
+            </div>
+              
+            <div id="search-result" class="search-result"></div>
+
+        </div>
+ 
+
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">Home
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">Archives
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">Tags
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">About
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">Search </a>                 
+            
+         
+      
+</div>        
+    
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?636802045446222199ae541e32c8133e"; 
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+
+
+     
+    
+
+
+
+
+<footer id="footer">	    
+
+		
+		<div class="footer-copyright">
+		&copy;
+		
+		2018		
+		
+		YHYR
+		<br>
+		<!-- annotate theme msg in footer  by yhyr 2018/06/02
+		Theme By
+		<a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>	
+		-->
+		</div>			
+	 
+</footer>   
+
+  
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
