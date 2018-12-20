@@ -1,0 +1,430 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  用Python优雅的做数据处理 |   【永恒依然】的博客 </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header">
+	
+  <nav class="header-nav">        
+   
+    <span class="iconfont icon-menu mobile-toggle"></span>   	
+
+    <!-- <a class="header-logo" href="/"></a> -->
+
+    <div class="header-menu">          
+              
+            
+
+              <a class="header-menu-link" id="header-menu-home" href="/">Home</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-archives" href="/archives">Archives</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-tags" href="/tags">Tags</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-about" href="/about">About</a>     
+
+            
+            
+            
+
+              <a class="iconfont icon-menu-search header-menu-link" id="header-menu-search"></a>
+
+            
+                
+    </div>  
+    
+  </nav>
+</header>   
+
+      <div class="container">       
+          
+          
+            <section class="main">  
+          
+
+          <article class="post">
+  
+	<div class="post-header">
+
+	<p class="post-title">	
+		用Python优雅的做数据处理
+	</p>
+			
+
+	<div class="meta-info">	
+	<span>
+		Dec 20, 2018
+	</span>
+
+	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			4310
+		</span>
+	
+</div>
+
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<p>主要包含Python、Pandas的使用、代码风格、编码技巧和问题总结</p>
+<a id="more"></a>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本文主要是针对在实际工作中，有关数据处理方面所遇到的问题解决思路和代码优化心得的一个归纳汇总。通篇没有什么太强的逻辑和关联，基本就是想到哪就写到哪，当做一次随笔记录。将会持续不断的把自己在看到、用到的好的代码在这里做已记录和分享，相互学习，共同进步。本文主要涉及到有关Python和数据处理包Pandas的相关记录，有关基础在这里不做赘述，话不多说直入正题。</p>
+<h1 id="基于字典构造DataFrame"><a href="#基于字典构造DataFrame" class="headerlink" title="基于字典构造DataFrame"></a>基于字典构造DataFrame</h1><p>Eg：有如下字典：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dic = &#123;<span class="string">'name'</span>: [<span class="string">'jack'</span>, <span class="string">'lucy'</span>], <span class="string">'sex'</span>: [<span class="string">'male'</span>, <span class="string">'female'</span>], <span class="string">'age'</span>: [<span class="number">10</span>, <span class="number">9</span>]&#125;</span><br></pre></td></tr></table></figure>
+<p>对应如上的数据，要想转成DataFrame很容易：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">frame = pd.DataFrame(dic)</span><br><span class="line">print(frame)</span><br></pre></td></tr></table></figure>
+<p>最终结果如下所示：</p>
+<p><img src="./1.png" alt="pic1"></p>
+<p>但是假如字典结构变成如下形式：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dic = &#123;<span class="string">'name'</span>: <span class="string">'jack'</span>, <span class="string">'sex'</span>: <span class="string">'male'</span>, <span class="string">'age'</span>: <span class="number">10</span>&#125;</span><br></pre></td></tr></table></figure>
+<p>若继续用上述方式来生成DataFrame，则会报错；错误如下所示：</p>
+<p><img src="./2.png" alt="pic2"></p>
+<p>要规避这种错误，可以采用如下方式：</p>
+<p><img src="./3.png" alt="pic3"></p>
+<p>但是不难发现，这种转化结构和前者相比不太一样。倘若第二种的转化结果就是我们的期望形式，那无可厚非，可以通过指定index和column属性来完善行属性值和列属性值；但是如果我们目标结构是第一种DataFrame：字典的key作为DataFrame的列名，在这里推荐一种比较便捷的实现方式：</p>
+<ul>
+<li>Step1: 将字典转化成字典列表<code>dicList = [{&#39;name&#39;: &#39;jack&#39;, &#39;sex&#39;: &#39;male&#39;, &#39;age&#39;: 10}]</code></li>
+<li>基于pd.DataFrame.from_records(dicList)来构造DataFrame</li>
+</ul>
+<p><img src="./4.png" alt="pic4"></p>
+<p>在实际的项目开发中，存在如下需求：字典的key和value均期望作为DataFrame的值，而非将key做为column；对于此类需求场景，可采用如下方式：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 性别-代号 映射</span></span><br><span class="line">dic = &#123;<span class="string">'male'</span>: <span class="string">'1'</span>, <span class="string">'female'</span>: <span class="string">'2'</span>&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="./5.png" alt="pic5"></p>
+<h1 id="基于DataFrame的数据筛选"><a href="#基于DataFrame的数据筛选" class="headerlink" title="基于DataFrame的数据筛选"></a>基于DataFrame的数据筛选</h1><h2 id="获取列中的值"><a href="#获取列中的值" class="headerlink" title="获取列中的值"></a>获取列中的值</h2><p>Eg：DataFrame中存在一列相同的值，但该列的index未必有序，此处若想获取其中一个值，有如下两种方法：</p>
+<p>方案一：将该列转化为list，然后获取第一个值即可<code>value = list(frame[columns_name])[0]</code></p>
+<p>方案二：<code>value = frame[columns_name].values[0]</code></p>
+<p><em>注：方案一在数据量过大存在性能问题，推荐使用方案二</em></p>
+<h2 id="列筛选"><a href="#列筛选" class="headerlink" title="列筛选"></a>列筛选</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dataframe[columns_name] <span class="comment"># 返回值类型：Series， 仅支持单列筛选</span></span><br><span class="line">dataframe.loc[:, [columns_name]] <span class="comment"># 返回值类型：DataFrame, 支持同时筛选多列</span></span><br></pre></td></tr></table></figure>
+<h2 id="行筛选"><a href="#行筛选" class="headerlink" title="行筛选"></a>行筛选</h2><p>类比列筛选，行筛选也可以根据<strong>返回值类型</strong>划分为两大类：返回DataFrame类型和返回Series类型</p>
+<h3 id="DataFrame类型-均支持多行筛选"><a href="#DataFrame类型-均支持多行筛选" class="headerlink" title="DataFrame类型(均支持多行筛选)"></a>DataFrame类型(均支持多行筛选)</h3><ul>
+<li>1) 按照index的具体值筛选：<code>dataframe.loc[[index]]</code>；如果指定值不存在，则会报错</li>
+<li>2) 按照index的序号值筛选：<code>dataframe.iloc[[index]]</code>；无需care当前index的具体值是多少(index的起始下标为0)</li>
+</ul>
+<p><img src="/images/placeholder.png" alt="pic6" data-src="./6.png" class="lazyload"></p>
+<h3 id="Series类型-均不支持多行筛选"><a href="#Series类型-均不支持多行筛选" class="headerlink" title="Series类型(均不支持多行筛选)"></a>Series类型(均不支持多行筛选)</h3><ul>
+<li>1) 按照index的具体值筛选：<code>dataframe.loc[index]</code></li>
+<li>2) 按照index的序号之筛选：<code>dataframe.iloc[index]</code></li>
+</ul>
+<h2 id="条件筛选"><a href="#条件筛选" class="headerlink" title="条件筛选"></a>条件筛选</h2><h3 id="列条件筛选"><a href="#列条件筛选" class="headerlink" title="列条件筛选"></a>列条件筛选</h3><p>Eg：有如下数据集frame</p>
+<p><img src="/images/placeholder.png" alt="pic7" data-src="./7.png" class="lazyload"></p>
+<p>如果只想获得所有的name和age属性，可以通过loc函数很容易实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df = frame.loc[:, [<span class="string">'name'</span>, <span class="string">'age'</span>]]</span><br></pre></td></tr></table></figure>
+<h4 id="场景1-单一条件筛选"><a href="#场景1-单一条件筛选" class="headerlink" title="场景1 单一条件筛选"></a>场景1 单一条件筛选</h4><p><code>frame.loc[condition, :]</code> 等价于 <code>frame.loc[condition]</code></p>
+<p>eg：找到所有年龄小与等于10 的人员信息</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">condition = frame[<span class="string">'age'</span>] &lt;= <span class="number">10</span></span><br><span class="line">df = frame.loc[condition, :]</span><br></pre></td></tr></table></figure>
+<p>或者</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 个人习惯用这种方式，减少代码量 ^o^</span></span><br><span class="line">df = frame.loc[frame[<span class="string">'age] &lt;= 10, :]</span></span><br></pre></td></tr></table></figure>
+<p><img src="/images/placeholder.png" alt="pic8" data-src="./8.png" class="lazyload"></p>
+<h4 id="场景2-范围筛选"><a href="#场景2-范围筛选" class="headerlink" title="场景2 范围筛选"></a>场景2 范围筛选</h4><p>eg：找到名叫Tom或者Lucy或者Jessica的人员信息</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df = frame.loc[frame[<span class="string">'name'</span>].isin([<span class="string">'Lucy'</span>, <span class="string">'Tom'</span>, <span class="string">'Jessica'</span>]), :]</span><br></pre></td></tr></table></figure>
+<p><img src="/images/placeholder.png" alt="pic9" data-src="./9.png" class="lazyload"></p>
+<h4 id="场景3-多条件筛选"><a href="#场景3-多条件筛选" class="headerlink" title="场景3 多条件筛选"></a>场景3 多条件筛选</h4><p><code>frame[(condition1) &amp; (condition2), :]</code> 等价于 <code>frame[(condition1) &amp; (condition2)]</code></p>
+<p>eg：找到年龄等于10且性别为女的所有人的详细信息</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df = frame.loc[frame[<span class="string">'age'</span>].isin([<span class="number">10</span>]) &amp; frame[<span class="string">'sex'</span>].isin([<span class="string">'female'</span>]), :]</span><br></pre></td></tr></table></figure>
+<p><img src="/images/placeholder.png" alt="pic10" data-src="./10.png" class="lazyload"></p>
+<p><em><font color="red">注意：多列，每个条件只能用isin做判断，不能直接用等于、大/小于进行判断</font></em></p>
+<h4 id="场景4-条件取反"><a href="#场景4-条件取反" class="headerlink" title="场景4 条件取反"></a>场景4 条件取反</h4><p>eg：找出除Jack和Tom以为的所有人员信息</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df = frame.loc[~frame[<span class="string">'name'</span>].isin([<span class="string">'Jack'</span>, <span class="string">'Tom'</span>]), :]</span><br></pre></td></tr></table></figure>
+<h1 id="DataFrame增添列时报SettingWithCopyWarning"><a href="#DataFrame增添列时报SettingWithCopyWarning" class="headerlink" title="DataFrame增添列时报SettingWithCopyWarning"></a>DataFrame增添列时报SettingWithCopyWarning</h1><p>当在项目代码中按<code>df[&#39;newCol&#39;] = value</code>这种方式为已知的DataFrame新增列值时，有时候会报如下warning：</p>
+<p>SettingWithCopyWarning: A value is trying to be set on a copy of a slice from a DataFrame. </p>
+<p>对代码洁癖的人来说，这当然是无法容忍的。可以通过一种更加友好的方式来实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataFrame.insert（列序值， 列名， 待插入的值）</span><br></pre></td></tr></table></figure>
+<h1 id="DataFrame行添加"><a href="#DataFrame行添加" class="headerlink" title="DataFrame行添加"></a>DataFrame行添加</h1><p>在已有的DataFrame中增添一行数据：<code>df = frame.append(dic, ignore_index=True)</code></p>
+<p>eg：新增一个用户信息</p>
+<p><img src="/images/placeholder.png" alt="pic11" data-src="./11.png" class="lazyload"></p>
+<h1 id="DataFrame排序"><a href="#DataFrame排序" class="headerlink" title="DataFrame排序"></a>DataFrame排序</h1><h2 id="场景1-按照某一列排序"><a href="#场景1-按照某一列排序" class="headerlink" title="场景1 按照某一列排序"></a>场景1 按照某一列排序</h2><p>数值类型默认按照升序，字符串类型默认按照首字母排序</p>
+<p>eg：按照你年龄由小到大排序</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ascending=1 代表升序（默认）, =0代表降序</span></span><br><span class="line">frame.sort_values([<span class="string">'age'</span>], ascending=<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="场景2-按照自定义排序"><a href="#场景2-按照自定义排序" class="headerlink" title="场景2 按照自定义排序"></a>场景2 按照自定义排序</h2><p>eg：将上述数据按照【Tom，Jessica， Jack， Lucy】的次序进行排序</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sortList = [<span class="string">'Tom'</span>, <span class="string">'Jessica'</span>, <span class="string">'Jack'</span>, <span class="string">'Lucy'</span>]</span><br><span class="line">frame[<span class="string">'name'</span>] = frame[<span class="string">'name'</span>].astype(<span class="string">'category'</span>)</span><br><span class="line">frame[<span class="string">'name'</span>].cat.set_categories(sortList, inplace=<span class="keyword">True</span>)</span><br><span class="line">frame.sort_values(<span class="string">'name'</span>, inplace=<span class="keyword">True</span>)</span><br><span class="line">frame[<span class="string">'name'</span>] = frame[<span class="string">'name'</span>].astype(<span class="string">'object'</span>)</span><br></pre></td></tr></table></figure>
+<p><img src="/images/placeholder.png" alt="pic12" data-src="./12.png" class="lazyload"></p>
+<p>这里新引入了一个Pandas的数据类型：Categorical </p>
+<p>个人理解：该数据类型主要有两中应用场景（官方文档上说有三种，个人感觉第三种在实际工作中用到的并不多，也未多涉猎，故在此省略）：第一，可以数据的内存占有率，官方Doc上有个对比，同等数据量的object对象和category对象相比，后者的大小明显小于前者；这里直接截下官网Doc中的样例加以说明：</p>
+<p><img src="/images/placeholder.png" alt="pic13" data-src="./13.png" class="lazyload"></p>
+<p>因为笔者在实际工作中对该场景的应用不是很多，所在在此未做过多涉猎，就在这简单提及一下，有兴趣的可以参考：官方Doc<br>在这里重点说一下第二个应用场景，即就是列表排序；可以将传统的Object类型的DataFrame列转化为category类型，即可采用：reorder_categories方法或者set_categories方法进行排序。两者之间的区别： </p>
+<blockquote>
+<p>reorder_categories：要求指定排序列表的个数必须和待排序的DataFrame列中元素个数相等；即内容必须相同，但顺序不同； </p>
+</blockquote>
+<blockquote>
+<p>set_categories：排序列表的个数可以不等同于DataFrame列中的元素个数；当排序列表的元素个数大于DataFrame列中的元素时，排序后去交集；反之，排序后DataF会有Nan值。</p>
+</blockquote>
+<h1 id="DataFrame合并"><a href="#DataFrame合并" class="headerlink" title="DataFrame合并"></a>DataFrame合并</h1><h2 id="场景1-纵向合并-concat"><a href="#场景1-纵向合并-concat" class="headerlink" title="场景1 纵向合并(concat)"></a>场景1 纵向合并(concat)</h2><p>有如下数据集</p>
+<p><img src="/images/placeholder.png" alt="pic14" data-src="./14.png" class="lazyload"></p>
+<p><img src="/images/placeholder.png" alt="pic15" data-src="./15.png" class="lazyload"></p>
+<p><img src="/images/placeholder.png" alt="pic16" data-src="./16.png" class="lazyload"></p>
+<p>若把这三个表纵向合并成一个表</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">df = pd.concat([dataSet1, dataSet2, dataSet3])</span><br></pre></td></tr></table></figure>
+<h2 id="场景2-横向合并-merge"><a href="#场景2-横向合并-merge" class="headerlink" title="场景2 横向合并(merge)"></a>场景2 横向合并(merge)</h2><p>有如下数据集</p>
+<p><img src="/images/placeholder.png" alt="pic17" data-src="./17.png" class="lazyload"></p>
+<p><img src="/images/placeholder.png" alt="pic18" data-src="./18.png" class="lazyload"></p>
+<p><img src="/images/placeholder.png" alt="pic19" data-src="./19.png" class="lazyload"></p>
+<p>这三个数据集都有一个共有字段：name，如果想把这三个数据集做横向合并（merge），原生的pandas是没有提供类似concat这种接口可供直接使用的；所以就得我们自己手动实现该功能：<br>最容易想到的办法：循环遍历数据集列表，然后做merge。</p>
+<p><img src="/images/placeholder.png" alt="pic20" data-src="./20.png" class="lazyload"></p>
+<p>或者先通过concat，然后转置。</p>
+<p>在这里，<font color="red">推荐一下比较简洁的写法：采用函数式编程中的<strong>reduce</strong>函数实现</font>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df = reduce(<span class="keyword">lambda</span> x, y: pd.merge(x, y, on=[<span class="string">'name'</span>]), [df1, df2, df3])</span><br></pre></td></tr></table></figure>
+<h1 id="基于函数式编程消除基于for循环遍历List"><a href="#基于函数式编程消除基于for循环遍历List" class="headerlink" title="基于函数式编程消除基于for循环遍历List"></a>基于函数式编程消除基于for循环遍历List</h1><p>map函数是一种映射思想，既可以基于map函数来映射list中的每一个值，从而实现遍历的效果。<br>例如：对数组中每个元素的平方，map函数的返回值即就是一个list。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dataList = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]</span><br><span class="line">map(<span class="keyword">lambda</span> x: x * x, dataList)</span><br></pre></td></tr></table></figure>
+<h1 id="两个List的奇偶合并"><a href="#两个List的奇偶合并" class="headerlink" title="两个List的奇偶合并"></a>两个List的奇偶合并</h1><p>该逻辑的实现方案有很多，在此推荐一种笔者比较钟意的方案：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">list1 = [<span class="number">1</span>, <span class="number">3</span>, <span class="number">5</span>, <span class="number">7</span>, <span class="number">9</span>]</span><br><span class="line">list2 = [<span class="number">2</span>, <span class="number">4</span>, <span class="number">6</span>, <span class="number">8</span>, <span class="number">10</span>]</span><br><span class="line">mergeList = [<span class="keyword">None</span>] * (len(list1) + len(list2))</span><br><span class="line">mergeList[::<span class="number">2</span>] = list1</span><br><span class="line">mergeList[<span class="number">1</span>::<span class="number">2</span>] = list2</span><br></pre></td></tr></table></figure>
+<p><em>注：【：：2】表示以数组中第一个位置作为起始位置，间隔跨度为2；【1：：2】表示以数组中第二个位置作为起始位置，间隔跨度为2</em></p>
+  	
+					
+	  </div>     
+	  
+
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/Python/">Python</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar lazyload" src="/images/placeholder.png" data-src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+	</div>
+
+	<span class="donate-word">您的认可是我坚持下去的理由</span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2018/12/15/Kafka理论之Partition-Replication/" data-hover="Kafka理论之Partition &amp; Replication"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
+    
+    <div id="disqus_thread"></div>
+
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
+
+
+	
+</article>
+
+          </section> 
+      </div>            
+    
+    <a id="backTop">
+      <span>
+        <i class="iconfont icon-backtotop"></i>
+      </span>
+    </a> 
+
+  
+    
+
+        
+        <div class="search-container sildeUpMin">
+
+
+            <div class="search-header">
+            <input type="text" placeholder="Typing Something here." id="search-input" class="search-input">  
+            <span class="search-cancel iconfont icon-cancel"></span>
+          
+            </div>
+              
+            <div id="search-result" class="search-result"></div>
+
+        </div>
+ 
+
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">Home
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">Archives
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">Tags
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">About
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">Search </a>                 
+            
+         
+      
+</div>        
+    
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?636802045446222199ae541e32c8133e"; 
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+
+
+     
+    
+
+
+
+
+<footer id="footer">	    
+
+		
+		<div class="footer-copyright">
+		&copy;
+		
+		2018		
+		
+		YHYR
+		<br>
+		<!-- annotate theme msg in footer  by yhyr 2018/06/02
+		Theme By
+		<a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>	
+		-->
+		</div>			
+	 
+</footer>   
+
+  
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
