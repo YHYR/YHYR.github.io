@@ -1,0 +1,367 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Linux磁盘空间释放 |   【永恒依然】的博客 </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header">
+	
+  <nav class="header-nav">        
+   
+    <span class="iconfont icon-menu mobile-toggle"></span>   	
+
+    <!-- <a class="header-logo" href="/"></a> -->
+
+    <div class="header-menu">          
+              
+            
+
+              <a class="header-menu-link" id="header-menu-home" href="/">Home</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-archives" href="/archives">Archives</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-tags" href="/tags">Tags</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-about" href="/about">About</a>     
+
+            
+            
+            
+
+              <a class="iconfont icon-menu-search header-menu-link" id="header-menu-search"></a>
+
+            
+                
+    </div>  
+    
+  </nav>
+</header>   
+
+      <div class="container">       
+          
+          
+            <section class="main">  
+          
+
+          <article class="post">
+  
+	<div class="post-header">
+
+	<p class="post-title">	
+		Linux磁盘空间释放
+	</p>
+			
+
+	<div class="meta-info">	
+	<span>
+		Dec 22, 2018
+	</span>
+
+	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			1591
+		</span>
+	
+</div>
+
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<p>基于文件伪删除的问题，进一步学习和了解Linux相关的命令和文件系统</p>
+<a id="more"></a>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>在近期的实际工作中，遇到过几次因为磁盘空间满而导致服务不可用的情况，所以免不了要对系统进行清理。 在最开始的几次清理过程中，通过删除一些大日志文件可以得到立竿见影的效果，所以就没怎么注意；但是在最近一次的清理过程中，发现根目录的使用率已经到达百分百，但是并没有在根目录下发现有什么大文件，所以无法仅通过<code>rm -rf ***</code>这种简单粗暴的方式来解决问题。</p>
+<h1 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h1><h2 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h2><p>说起<font color="red">被删除文件的磁盘空间并未释放</font>问题，还存在一个与之类似的说法：<font color="red">df、du结果不一致</font>，这两个问题在很大程度上指的是一回事：即就是被删除文件在被执行rm命令时，还有其他进程在操作该文件；所以该文件只是被标记为“deleted”，而非立马被删除；除非等到操作该文件的所有进程都结束后该文件才会被删除。</p>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p>俗话说好记性不如赖笔头，既然知道了原因，那就亲自实践一下，在验证结论正确与否的同时加深记忆也未尝不可。</p>
+<p>首先执行命令<code>df -h</code>，可以看到当前机器的根目录的大小为48G，可用空间为35G；</p>
+<p><img src="./磁盘空间.png" alt="磁盘空间"></p>
+<p>然后在当前用户目录(/home/yhyr)下新建一个数据文件，为了提升试验的效果，这里生成文件的大小为1G；数据文件生成 命令<code>dd if=/dev/zero of=./data_file bs=1M count=1024</code>；然后分别查看当前目录的文件大小信息<code>du -sh ./*</code>和磁盘的占用情况<code>df -h</code></p>
+<p><img src="./查看新建数据文件.png" alt="查看新建数据文件"></p>
+<p><img src="./新增文件后的磁盘空间.png" alt="新增文件后的磁盘空间"></p>
+<p>可以看到此时相较于之前35G的可用空间，现在已经少了一个G，符合我们的预期。接下来分别验证一下有无进程操作下，删除数据文件后磁盘空间的使用情况：</p>
+<p>场景一：当没有任何进程操作该数据文件时，执行<code>rm -f data_file</code>后磁盘空间成功释放了1G的空间，执行结果如下所示：</p>
+<p><img src="./无进程操作下的删除结果.png" alt="无进程操作下的删除结果"></p>
+<p>场景二：首先通过<code>tail data_file &amp;</code>模拟操作该数据文件，然后删除该文件并查看磁盘空间的释放情况：</p>
+<p><img src="./有进程操作下的删除结果.png" alt="有进程操作下的删除结果"></p>
+<p>这样就可以复现磁盘空间未释放的情况；然后通过<code>lsof | grep data_file</code>查看文件的占用信息：</p>
+<p><img src="/images/placeholder.png" alt="lsof文件占用信息" data-src="./lsof文件占用信息.png" class="lazyload"></p>
+<p>通过lsof命令可以看到该文件被tail进程所占用，对应的进程PID为92489，文件的路径即就是当初删除前文件的实际路径，只是目前被标记为deleted；现在通过<code>kill -9 PID</code>命令杀死tail进程后，磁盘空间信息如下所示：</p>
+<p><img src="/images/placeholder.png" alt="释放文件占用进程" data-src="./释放文件占用进程.png" class="lazyload"></p>
+<p>到这有关如何解决因为进程占用而导致磁盘空间无法释放的问题应该都已有所了解；因为这个问题看起没什么难度，网上有关此问题的描述也要很多，在这里就不做过多的赘述。接下来基于此次问题的发现和实践解决过程，更进一步的了解一些有关系统监控基本系统监控命令、进程命令，来提升问题的排查和定位能力。</p>
+<h1 id="du-amp-df"><a href="#du-amp-df" class="headerlink" title="du &amp; df"></a>du &amp; df</h1><h2 id="du-disk-usage"><a href="#du-disk-usage" class="headerlink" title="du(disk usage)"></a>du(disk usage)</h2><p>面向文件的命令；通过计算文件的大小来统计指定目录磁盘的使用情况；通俗的讲就是计算文件具体的占用空间</p>
+<p>常用命令</p>
+<blockquote>
+<p><code>du -sh</code> 统计当前目录的总大小</p>
+<p><code>du -sh ./*</code> 查看当前目录下各文件(文件夹)的大小，不统计隐藏文件(夹)</p>
+<p><code>du -h --max-depth=1</code> 查看当前目录下各文件(夹)的大小【囊括隐藏文件(夹)】；等价于<code>du -h -d 1</code></p>
+</blockquote>
+<h2 id="df-disk-free"><a href="#df-disk-free" class="headerlink" title="df(disk free)"></a>df(disk free)</h2><p>面向文件系统的命令；通过文件系统获取分区信息；Eg：分区大小、使用量、剩余量、使用率</p>
+<p>常用命令</p>
+<blockquote>
+<p>df -h</p>
+</blockquote>
+<h1 id="lsof"><a href="#lsof" class="headerlink" title="lsof"></a>lsof</h1><p>lsof(list open file)，列出打开文件；</p>
+<h1 id="Process-amp-PID-amp-Port"><a href="#Process-amp-PID-amp-Port" class="headerlink" title="Process &amp; PID &amp; Port"></a>Process &amp; PID &amp; Port</h1><h2 id="PID查看对应的进程信息"><a href="#PID查看对应的进程信息" class="headerlink" title="PID查看对应的进程信息"></a>PID查看对应的进程信息</h2><p>方案一：通过ps命令查看</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -aux | grep pid</span><br></pre></td></tr></table></figure>
+<p>方案二：进入进程目录查看</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> Step 1</span><br><span class="line">cd /proc/pid</span><br><span class="line"><span class="meta">#</span> Step 2</span><br><span class="line">ls -lt</span><br><span class="line"><span class="meta">#</span> cwd表示进程所在的目录；exe表示进程类型</span><br></pre></td></tr></table></figure>
+<h2 id="查看端口占用"><a href="#查看端口占用" class="headerlink" title="查看端口占用"></a>查看端口占用</h2><p>方案一：<code>lsof -i:PID</code></p>
+<p>方案二：<code>netstat -nlp | grep PID</code></p>
+<h1 id="Linux文件描述符"><a href="#Linux文件描述符" class="headerlink" title="Linux文件描述符"></a>Linux文件描述符</h1><h1 id=""><a href="#" class="headerlink" title=" "></a> </h1>  	
+					
+	  </div>     
+	  
+
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/Linux/">Linux</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar lazyload" src="/images/placeholder.png" data-src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+	</div>
+
+	<span class="donate-word">您的认可是我坚持下去的理由</span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2018/12/20/用Python优雅的做数据处理/" data-hover="用Python优雅的做数据处理"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
+    
+    <div id="disqus_thread"></div>
+
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
+
+
+	
+</article>
+
+          </section> 
+      </div>            
+    
+    <a id="backTop">
+      <span>
+        <i class="iconfont icon-backtotop"></i>
+      </span>
+    </a> 
+
+  
+    
+
+        
+        <div class="search-container sildeUpMin">
+
+
+            <div class="search-header">
+            <input type="text" placeholder="Typing Something here." id="search-input" class="search-input">  
+            <span class="search-cancel iconfont icon-cancel"></span>
+          
+            </div>
+              
+            <div id="search-result" class="search-result"></div>
+
+        </div>
+ 
+
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">Home
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">Archives
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">Tags
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">About
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">Search </a>                 
+            
+         
+      
+</div>        
+    
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?636802045446222199ae541e32c8133e"; 
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+
+
+     
+    
+
+
+
+
+<footer id="footer">	    
+
+		
+		<div class="footer-copyright">
+		&copy;
+		
+		2018		
+		
+		YHYR
+		<br>
+		<!-- annotate theme msg in footer  by yhyr 2018/06/02
+		Theme By
+		<a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>	
+		-->
+		</div>			
+	 
+</footer>   
+
+  
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
