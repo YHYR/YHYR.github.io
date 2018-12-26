@@ -21,7 +21,7 @@ tags:
 
 Consumer Group的作用主要有：管理Partition的Offset信息；管理Consumer Client与Partition的分配。正因为所有Partition的Offset信息是由Group统一管理，所以如果一个Partition有多个Consumer，那么每个Consumer在该Partition上的Offset很可能会不一致，这样会导致在Rebalance后赋值处理的Client的消费起点发生混乱；与此同时，这种场景也不符合Kafka中Partition消息消费的一致性；因此在同一Group下一个Partition只能对应一个Consumer Client。
 
-接下来将通过介绍Group的管理者Coordinator来了解Group是如何管理Offset；此外通过介绍Group的Rebalance机制了解Partition分配的原理，并介绍如何通过代码实现Rebalance的监控。如图是个人总结绘制的大致逻辑图
+接下来将通过介绍Group的管理者Coordinator来了解Group是如何管理Offset；此外通过介绍Group的Rebalance机制了解Partition分配的原理，并介绍如何通过代码实现Rebalance的监控。下图是基于自己的理解绘制的逻辑图，有不对的地方还请指正：
 
 ![group-coordinator逻辑图](./group-coordinator逻辑图.png)
 
@@ -53,6 +53,8 @@ bin/kafka-topics.sh --zookeeper <address:port> --topic __consumer_offsets --desc
 Group Coordinaror是Group Rebalance中不可或缺的一环，因为Coordinator负责记录了每次Rebalance后的Partition分配结果，因此Kafka为Coordinator赋予了一个Generation的概念。Generation(谷歌翻译为“代”)可以通俗的理解为版本的概念，Generation未开始时值为-1，在第一次Rebalance后Group进入Stable状态时值为1，此后每发生一次Rebalance，Generation的Id会自增长加1。
 
 ![generation源码](./generation源码.png)
+
+![Group_generation版本信息](./Group_generation版本信息.png)
 
 网上有的人把Generation归结为Group的概念，说Group是有版本(代)的概念，个人觉得这是不太恰当的，因为从源码层面看，Generation是抽象类AbstractCoordinator的内部类；个人感觉Group更像是一个逻辑侧面的概念，用来规范、管理一些消费端抽象抽来的一种约束手段。
 
