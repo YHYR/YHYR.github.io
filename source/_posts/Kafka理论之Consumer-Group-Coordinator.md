@@ -221,10 +221,10 @@ public class ConsumerRebalanceListenerDemo {
 
 
 
-参考
+*参考*
 
-[Kafka权威指南](https://pan.baidu.com/s/1Ol3vd1Ehx8EC8yWAufPjWA)
+*[Kafka权威指南](https://pan.baidu.com/s/1Ol3vd1Ehx8EC8yWAufPjWA)*
 
-[Consumer分区分配策略](https://blog.csdn.net/zhanyuanlin/article/details/76021614)
+*[Consumer分区分配策略](https://blog.csdn.net/zhanyuanlin/article/details/76021614)*
 
-[Consumer Group介绍](https://www.cnblogs.com/huxi2b/p/6223228.html)
+*[Consumer Group介绍](https://www.cnblogs.com/huxi2b/p/6223228.html)*
