@@ -49,7 +49,7 @@ tags:
 </dependency>
 ```
 
-可以看到通过配置一些参数，并调用poll方法就可以开始消费消息。如果想要了解Consumer的实现原理，当然绕不开阅读poll方法的源码，本篇先抛开poll的实现原理，可以先简单的理解为：调用poll方法可以实现将Client加入到Group中，获取Partition信息，并且拉去对应Partition上的数据。接下来首先会对Consumer的几个主要的参数做以说明，然后通过几个案例来加深对Consumer的使用。在案例的实现过程中涉及到有过Kafka底层的相关知识，若有不清楚的可先阅读[Partition & Replication](https://yhyr.github.io/2018/12/15/Kafka%E7%90%86%E8%AE%BA%E4%B9%8BPartition-Replication/)、[Consumer-Group-Coordinator](https://yhyr.github.io/2018/12/26/Kafka%E7%90%86%E8%AE%BA%E4%B9%8BConsumer-Group-Coordinator/) 。
+可以看到通过配置一些参数，并调用poll方法就可以开始消费消息。如果想要了解Consumer的实现原理，当然绕不开阅读poll方法的源码，本篇先抛开poll的实现原理，可以先简单的理解为：调用poll方法可以实现将Client加入到Group中，获取Partition信息，并且拉去对应Partition上的数据。接下来首先会对Consumer的几个主要的参数做以说明，然后通过几个案例来加深对Consumer的使用。在案例的实现过程中涉及到有过Kafka底层的相关知识，若有不清楚的可先阅读 [Partition & Replication](https://yhyr.github.io/2018/12/15/Kafka%E7%90%86%E8%AE%BA%E4%B9%8BPartition-Replication/)、[Consumer-Group-Coordinator](https://yhyr.github.io/2018/12/26/Kafka%E7%90%86%E8%AE%BA%E4%B9%8BConsumer-Group-Coordinator/) 。
 
 *poll()源码的分析可参考[poll模型](https://matt33.com/2017/11/11/consumer-pollonce/) *
 
@@ -179,7 +179,7 @@ public void consumerSpecialOffset() {
 
 例如Group(group_test)下的Topic(topic_demo)只有一个Partition，正在被服务A所占用；分区topic_demo-0的有效offset范围为100 ~ 1000；且从500处开始一直到1000，所有的消息均是脏数据，现在需要在不停服的前提下，将Offset的位置改变成最新状态。
 
-要实现<font color=red>不停服更新Offset</font>，就需要了解Consumer Rebalance和Partition Assignment；这里简单阐述一下(有关Rebalance的相关知识、分区分区策略的原理详见[Consumer-Group-Coordinator](https://yhyr.github.io/2018/12/26/Kafka%E7%90%86%E8%AE%BA%E4%B9%8BConsumer-Group-Coordinator/) )：
+要实现<font color=red>不停服更新Offset</font>，就需要了解Consumer Rebalance和Partition Assignment；这里简单阐述一下(有关Rebalance的相关知识、分区分区策略的原理详见 [Consumer-Group-Coordinator](https://yhyr.github.io/2018/12/26/Kafka%E7%90%86%E8%AE%BA%E4%B9%8BConsumer-Group-Coordinator/) )：
 
 Rebalance：Rebalance是基于Group而言的，一个Group中Consumer个数的变化会触发Rebalance；Group在Rebalance期间对外表现为不可用；没经过一次Rebalance，都会按照客户端的分区分配策略来分发客户端将要处理的Partition。
 
@@ -235,7 +235,7 @@ Rebalance的设计很好的提升了Kafka的容错率和可扩展性；但并非
 
 ![offset-消息重复](./offset-消息重复.png)
 
-*图片来自Kafka权威指南 Chapter 4/Commits and Offset*
+*图片来自Kafka权威指南 Chapter 4*
 
 要解决该问题，可以通过监听Consumer的Rebalance行为，在发生前将该处理的操作及时的处理完，样例代码如下所示，每次Rebalance前打印当前的Offset信息
 
