@@ -1,0 +1,359 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Kafka实践之常用命令 |   【永恒依然】的博客 </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header">
+	
+  <nav class="header-nav">        
+   
+    <span class="iconfont icon-menu mobile-toggle"></span>   	
+
+    <!-- <a class="header-logo" href="/"></a> -->
+
+    <div class="header-menu">          
+              
+            
+
+              <a class="header-menu-link" id="header-menu-home" href="/">Home</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-archives" href="/archives">Archives</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-tags" href="/tags">Tags</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-about" href="/about">About</a>     
+
+            
+            
+            
+
+              <a class="iconfont icon-menu-search header-menu-link" id="header-menu-search"></a>
+
+            
+                
+    </div>  
+    
+  </nav>
+</header>   
+
+      <div class="container">       
+          
+          
+            <section class="main">  
+          
+
+          <article class="post">
+  
+	<div class="post-header">
+
+	<p class="post-title">	
+		Kafka实践之常用命令
+	</p>
+			
+
+	<div class="meta-info">	
+	<span>
+		Jan 01, 2019
+	</span>
+
+	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			2268
+		</span>
+	
+</div>
+
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<p>常用的命令汇总</p>
+<a id="more"></a>
+<h1 id="Topic"><a href="#Topic" class="headerlink" title="Topic"></a>Topic</h1><h2 id="新建Topic"><a href="#新建Topic" class="headerlink" title="新建Topic"></a>新建Topic</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --create --topic &lt;string&gt; --replication-factor &lt;integer&gt; --partitions &lt;integer&gt;</span><br></pre></td></tr></table></figure>
+<h2 id="删除Topic"><a href="#删除Topic" class="headerlink" title="删除Topic"></a>删除Topic</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --delete --topic &lt;string&gt;</span><br></pre></td></tr></table></figure>
+<h2 id="查看Topic列表"><a href="#查看Topic列表" class="headerlink" title="查看Topic列表"></a>查看Topic列表</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --list</span><br></pre></td></tr></table></figure>
+<h2 id="查看所有Topic的详细信息"><a href="#查看所有Topic的详细信息" class="headerlink" title="查看所有Topic的详细信息"></a>查看所有Topic的详细信息</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --describe</span><br></pre></td></tr></table></figure>
+<h2 id="增加Partition个数"><a href="#增加Partition个数" class="headerlink" title="增加Partition个数"></a>增加Partition个数</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --alter --topic &lt;string&gt; --partitions &lt;integer&gt;</span><br></pre></td></tr></table></figure>
+<h2 id="查看指定Topic的详细信息"><a href="#查看指定Topic的详细信息" class="headerlink" title="查看指定Topic的详细信息"></a>查看指定Topic的详细信息</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --describe --topic &lt;string&gt;</span><br></pre></td></tr></table></figure>
+<p>相比于上一条查看所有topic的信息命令，查看指定topic的信息具有更切实的实际作用，更有利于在实际工作中快速定位和发现问题(推荐使用)。通过该命令可以查看给定Topic的分区、副本集个数；以及各分区、副本集的实际分布情况，同时还可以看到每个分区的ISR列表信息(有关ISR介绍可详见<a href="https://yhyr.github.io/2018/12/15/Kafka%E7%90%86%E8%AE%BA%E4%B9%8BPartition-Replication/" target="_blank" rel="noopener">ISR</a>)。通过该命令可以根据各Partition的ISR情况分析Broker状况。执行结果如下所示</p>
+<p><img src="./查看Topic详细信息.png" alt="查看Topic详细信息"></p>
+<h2 id="查看副本集同步出现异常的分区"><a href="#查看副本集同步出现异常的分区" class="headerlink" title="查看副本集同步出现异常的分区"></a>查看副本集同步出现异常的分区</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --describe --under-replicated-partitions</span><br></pre></td></tr></table></figure>
+<h2 id="查看缺失leader的分区"><a href="#查看缺失leader的分区" class="headerlink" title="查看缺失leader的分区"></a>查看缺失leader的分区</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-topics.sh --zookeeper &lt;zookeeper connect&gt; --describe --unavailable-partitions</span><br></pre></td></tr></table></figure>
+<h2 id="查看Topic各Partition的offset极值"><a href="#查看Topic各Partition的offset极值" class="headerlink" title="查看Topic各Partition的offset极值"></a>查看Topic各Partition的offset极值</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list  &lt;address:port&gt; --topic &lt;string&gt; --time &lt;param&gt;</span><br></pre></td></tr></table></figure>
+<p>time参数详解</p>
+<blockquote>
+<p>-1：查看Partition的最大Offset，即就是latest</p>
+<p>-2：查看Partition的最小Offset，即就是earlist</p>
+<p>timestamp：查询指定时间戳以后的所有消息中最早的一条消息的offset值；Eg：1546272000000</p>
+</blockquote>
+<h1 id="Consumer-Group"><a href="#Consumer-Group" class="headerlink" title="Consumer Group"></a>Consumer Group</h1><p>因为Consumer的版本有新旧之分，且旧版本(Scala)的Consumer Client是依赖于Zookeeper来保存Offset的，而新版本(Java)的则基于内置的topic(__consumer_offsets )来保存offset，所以在使用Group相关命令时，必须根据实际情况确定Consumer的版本，即就是：旧版本的查询只需要指定Zookeeper参数即可，而新版本的查询需要指定–new-consumer参数的同时，指定bootstrap-server参数</p>
+<h2 id="查看Group列表"><a href="#查看Group列表" class="headerlink" title="查看Group列表"></a>查看Group列表</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-consumer-groups.sh --new-consumer --bootstrap-server &lt;address:port&gt; --list</span><br></pre></td></tr></table></figure>
+<h2 id="查看指定Group下各Topic对应Partition的实际消费情况"><a href="#查看指定Group下各Topic对应Partition的实际消费情况" class="headerlink" title="查看指定Group下各Topic对应Partition的实际消费情况"></a>查看指定Group下各Topic对应Partition的实际消费情况</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-consumer-groups.sh --new-consumer --bootstrap-server &lt;address:port&gt; --group &lt;name&gt; --describe</span><br></pre></td></tr></table></figure>
+<p>通过该命令可以了解到给定Group下每个Topic各Partition的最大Offset值，当前所处的消费位置；还显示出当前Partition所操作的客户端信息，LAG表示消费滞后的情况；执行结果如下所示：</p>
+<p><img src="./查看group下topic的消费情况.png" alt="查看group下topic的消费情况"></p>
+<h1 id="Console-Option"><a href="#Console-Option" class="headerlink" title="Console Option"></a>Console Option</h1><h2 id="控制台消费数据"><a href="#控制台消费数据" class="headerlink" title="控制台消费数据"></a>控制台消费数据</h2><p>旧版本消费</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-console-consumer.sh --zookeeper &lt;zookeeper connect&gt; --topic &lt;string&gt; --from-beginning</span><br></pre></td></tr></table></figure>
+<p>新版本消费</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-console-consumer.sh --bootstrap-server &lt;address:port&gt; --topic &lt;string&gt; --from-beginning</span><br></pre></td></tr></table></figure>
+<h2 id="控制台生产数据"><a href="#控制台生产数据" class="headerlink" title="控制台生产数据"></a>控制台生产数据</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-console-producer.sh --broker-list &lt;address:port&gt; --topic &lt;string&gt;</span><br></pre></td></tr></table></figure>
+  	
+					
+	  </div>     
+	  
+
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/Kafka/">Kafka</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar" src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img" src="/images/donate_wechat.png" alt="No Donate Image!">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img" src="/images/donate_wechat.png" alt="No Donate Image!">	
+	</div>
+
+	<span class="donate-word">您的认可是我坚持下去的理由</span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2018/12/26/Kafka理论之Consumer-Group-Coordinator/" data-hover="Kafka理论之Consumer Group &amp; Coordinator"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
+    
+    <div id="disqus_thread"></div>
+
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
+
+
+	
+</article>
+
+          </section> 
+      </div>            
+    
+    <a id="backTop">
+      <span>
+        <i class="iconfont icon-backtotop"></i>
+      </span>
+    </a> 
+
+  
+    
+
+        
+        <div class="search-container sildeUpMin">
+
+
+            <div class="search-header">
+            <input type="text" placeholder="Typing Something here." id="search-input" class="search-input">  
+            <span class="search-cancel iconfont icon-cancel"></span>
+          
+            </div>
+              
+            <div id="search-result" class="search-result"></div>
+
+        </div>
+ 
+
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">Home
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">Archives
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">Tags
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">About
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">Search </a>                 
+            
+         
+      
+</div>        
+    
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?636802045446222199ae541e32c8133e"; 
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+
+
+     
+    
+
+
+
+
+<footer id="footer">	    
+
+		
+		<div class="footer-copyright">
+		&copy;
+				
+		2018-
+		
+		2019		
+		
+		YHYR
+		<br>
+		<!-- annotate theme msg in footer  by yhyr 2018/06/02
+		Theme By
+		<a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>	
+		-->
+		</div>			
+	 
+</footer>   
+
+  
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
