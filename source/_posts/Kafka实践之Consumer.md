@@ -193,7 +193,7 @@ Rebalance：Rebalance是基于Group而言的，一个Group中Consumer个数的�
 结合上述两点就可以很容易实现不停服更新Offset的需求：即就是只要保证我的Offset更新服务B的client.id在排序上位于服务A的client.id，这样就可以保证在Rebalance之后一定能分配到该Partition，从而来执行Offset的更新操作(Offset的更新可以分为两种：直接将Offset指定为最大值；或者将Offset设定为一个无效值；这里采用第二种方案，因为Partition的有效Offset范围为100 ~ 1000，所以将Offset设置为10，则会因为auto.offset.reset=true的配置自动将Offset重新设置为latest)；当更新完成并安全退出后，再次触发Rebalance，此时Group中只剩下服务A，当服务A再次获取到当前Partition时，根据服务A的配置 `auto.offset.reset=true`，就可以保证此时的Offset为最新位置。
 
 ```java
-    public static void main(String[] args) {
+    public void commitSpecialOffsetTriggerRebalance() {
         String brokers = "localhost:9092";
         String group = "group_test";
         String topic = "topic_demo";
