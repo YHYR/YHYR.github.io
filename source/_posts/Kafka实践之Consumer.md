@@ -5,11 +5,11 @@ tags:
 - Kafka
 ---
 
-从几个应用案例出发，加深对Kafka Consumer的使用。
+通过自定义的操作Offset、监控Rebalance行为，进一步加深对Kafka Consumer的理解和使用
 
 <!-- more -->
 
-本文设计的所有代码详见[Github](https://github.com/YHYR/Kafka-Utils)
+本文所涉及的代码详见[Github](https://github.com/YHYR/Kafka-Utils)
 
 上手Kafka Consumer是比较容易的，这里以原生的Java API为例，通常的实现逻辑如下所示：
 
