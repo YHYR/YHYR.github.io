@@ -86,7 +86,7 @@
 	
 		<i class="iconfont icon-words"></i>
 		<span>
-			10546
+			10569
 		</span>
 	
 </div>
@@ -99,9 +99,9 @@
 		
 
 			
-					<p>从几个应用案例出发，加深对Kafka Consumer的使用。</p>
+					<p>通过自定义的操作Offset、监控Rebalance行为，进一步加深对Kafka Consumer的理解和使用</p>
 <a id="more"></a>
-<p>本文设计的所有代码详见<a href="https://github.com/YHYR/Kafka-Utils" target="_blank" rel="noopener">Github</a></p>
+<p>本文所涉及的代码详见<a href="https://github.com/YHYR/Kafka-Utils" target="_blank" rel="noopener">Github</a></p>
 <p>上手Kafka Consumer是比较容易的，这里以原生的Java API为例，通常的实现逻辑如下所示：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">consumer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String brokers = <span class="string">"localhost:9092"</span>;</span><br><span class="line">    String group = <span class="string">"group_test"</span>;</span><br><span class="line">    String topic = <span class="string">"topic_demo"</span>;</span><br><span class="line"></span><br><span class="line">    Properties props = <span class="keyword">new</span> Properties();</span><br><span class="line">    props.put(<span class="string">"bootstrap.servers"</span>, brokers);</span><br><span class="line">    props.put(<span class="string">"group.id"</span>, group);</span><br><span class="line">    props.put(<span class="string">"enable.auto.commit"</span>, <span class="string">"true"</span>);</span><br><span class="line">    props.put(<span class="string">"auto.offset.reset"</span>, <span class="string">"latest"</span>);</span><br><span class="line">    props.put(<span class="string">"key.deserializer"</span>, <span class="string">"org.apache.kafka.common.serialization.StringDeserializer"</span>);</span><br><span class="line">    props.put(<span class="string">"value.deserializer"</span>, <span class="string">"org.apache.kafka.common.serialization.StringDeserializer"</span>);</span><br><span class="line"></span><br><span class="line">    KafkaConsumer&lt;String, String&gt; consumer = <span class="keyword">new</span> KafkaConsumer&lt;&gt;(props);</span><br><span class="line">    consumer.subscribe(Collections.singletonList(topic));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">        ConsumerRecords&lt;String, String&gt; records = consumer.poll(<span class="number">100</span>);</span><br><span class="line">        <span class="keyword">for</span> (ConsumerRecord&lt;String, String&gt; record : records) &#123;</span><br><span class="line">            System.out.println(record.toString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>对应的maven依赖为</p>
