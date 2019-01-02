@@ -37,7 +37,7 @@ tags:
 
 ### Partition(分区)
 
-　　Partition是作用于具体的Topic而已的，而不是一个独立的概念。Partition能水平扩展客户端的读写性能，是高吞吐量的 保障。通俗的将，Partition就是一块保存具体数据的空间，本质就是磁盘上存放数据的文件夹，所以Partition是不能跨Broker存在，也不能在同一个Broker上跨磁盘。对于一个Topic，可以根据需要设定Partition的个数；Kafka默认的Partition个数num.partitions为1($KAFKA_HOME/config/server.properties)，表示该Topic的所有数据均写入至一个文件夹下；用户也可以在新建Topic的时候通过显示的指定`--partitions <integer>`参数实现自定义Partition个数。在数据持久化时，每条消息都是根据一定的分区规则路由到对应的Partition中，并append在log文件的尾部(这一点类似于HDFS)；在同一个Partition中消息是顺序写入的且始终保持有序性；但是不同Partition之间不能保证消息的有序性(高吞吐量的保障)。
+　　Partition是作用于具体的Topic而言的，而不是一个独立的概念。Partition能水平扩展客户端的读写性能，是高吞吐量的 保障。通俗的将，Partition就是一块保存具体数据的空间，本质就是磁盘上存放数据的文件夹，所以Partition是不能跨Broker存在，也不能在同一个Broker上跨磁盘。对于一个Topic，可以根据需要设定Partition的个数；Kafka默认的Partition个数num.partitions为1($KAFKA_HOME/config/server.properties)，表示该Topic的所有数据均写入至一个文件夹下；用户也可以在新建Topic的时候通过显示的指定`--partitions <integer>`参数实现自定义Partition个数。在数据持久化时，每条消息都是根据一定的分区规则路由到对应的Partition中，并append在log文件的尾部(这一点类似于HDFS)；在同一个Partition中消息是顺序写入的且始终保持有序性；但是不同Partition之间不能保证消息的有序性(高吞吐量的保障)。
 
 　　Kafka也支持动态增加一个已存在Topic的Partition个数，但<font color="red">不支持动态减少Partition个数</font>。因为被减少Partition所对应的数据处理是个难题；由于Kafka的数据写模式的限制，所以如果要把这些Partition的历史数据集追加到有效的Partition的尾部，就会破坏了Kafka在Partition上消息的有序性，显然是不合理的；但如果按照时间戳重新构分区的数据文件，可操作性和难度都将是非常大的，所以目前并不支持动态减少Partition个数。
 
