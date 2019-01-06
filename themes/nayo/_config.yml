@@ -32,12 +32,12 @@ favicon: /images/favicon.png
 # social link
 social:  
   Github: https://github.com/yhyr 
-  Facebook: https://www.facebook.com/yhyr.ycy
+  Facebook:
   Twitter: https://twitter.com/yhyr_ycy
   Instagram: https://www.instagram.com/yhyr.ycy/
   LinkedIn:
-  Weibo: https://weibo.com/u/2323516122
-#  Zhihu:
+  Weibo:
+  Zhihu:
 
 
 # toc
@@ -87,7 +87,7 @@ share_item:
 # source/imgaes/
 donate:
   enable: true
-  word: 您的认可是我坚持下去的理由
+  word: 
   wechat: /images/donate_wechat.png
   alipay: /images/donate_wechat.png
 
