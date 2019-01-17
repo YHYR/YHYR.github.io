@@ -1,0 +1,356 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  MySQL存储Json字符串 |   【永恒依然】的博客 </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header">
+	
+  <nav class="header-nav">        
+   
+    <span class="iconfont icon-menu mobile-toggle"></span>   	
+
+    <!-- <a class="header-logo" href="/"></a> -->
+
+    <div class="header-menu">          
+              
+            
+
+              <a class="header-menu-link" id="header-menu-home" href="/">Home</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-archives" href="/archives">Archives</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-tags" href="/tags">Tags</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-about" href="/about">About</a>     
+
+            
+            
+            
+
+              <a class="iconfont icon-menu-search header-menu-link" id="header-menu-search"></a>
+
+            
+                
+    </div>  
+    
+  </nav>
+</header>   
+
+      <div class="container">       
+          
+          
+            <section class="main">  
+          
+
+          <article class="post">
+  
+	<div class="post-header">
+
+	<p class="post-title">	
+		MySQL存储Json字符串
+	</p>
+			
+
+	<div class="meta-info">	
+	<span>
+		Jan 17, 2019
+	</span>
+
+	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			4176
+		</span>
+	
+</div>
+
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<p>解决向MySQL中插入Json字符串无法正确解析的问题</p>
+<a id="more"></a>
+<h2 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h2><blockquote>
+<p>Python 2.7</p>
+<p>MySQL 5.7</p>
+<p>MySQL-python 1.2.5</p>
+<p>Pandas 0.18.1</p>
+</blockquote>
+<p>在日常的数据处理中，免不了需要将一些序列化的结果存入到MySQL中。这里以插入JSON数据为例，讨论这种问题发生的原因和解决办法。现在的MySQL已经支持JSON数据格式了，在这里不做讨论；主要讨论如何保证存入到MySQL字段中的JsonString能被正确解析。</p>
+<h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> MySQLdb</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"></span><br><span class="line">mysql_conn = MySQLdb.connect(host=<span class="string">'localhost'</span>, user=<span class="string">'root'</span>, passwd=<span class="string">'root'</span>, db=<span class="string">'test'</span>, port=<span class="number">3306</span>, charset=<span class="string">'utf8'</span>)</span><br><span class="line">mysql_cur = mysql_conn.cursor()</span><br><span class="line"></span><br><span class="line">increment_id = <span class="number">1</span></span><br><span class="line">dic = &#123;<span class="string">"value"</span>: <span class="string">"&lt;img src=\"xxx.jpg\"&gt;"</span>, <span class="string">"name"</span>: <span class="string">"小明"</span>&#125;</span><br><span class="line">json_str = json.dumps(dic, ensure_ascii=<span class="keyword">False</span>)</span><br><span class="line"></span><br><span class="line">sql = <span class="string">"update demo set msg = '&#123;0&#125;' where id = '&#123;1&#125;'"</span>.format(json_str, increment_id)</span><br><span class="line">mysql_cur.execute(sql)</span><br><span class="line">mysql_conn.commit()</span><br><span class="line">mysql_cur.close()</span><br></pre></td></tr></table></figure>
+<p>应用场景抽象如上所示，将一个字典经过经过Json序列化后作为一个表字段的值存入到Mysql中，按照如上的方式更新数据时，发现落库的JsonString反序列化失败；落库结果和反序列化结果分别如下所示：</p>
+<p><img src="./原始插入结果图.png" alt="原始插入结果图"></p>
+<p><img src="./反序列化错误结果图.png" alt="反序列化错误结果图"></p>
+<h1 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h1><p>对于字符串中包含引号等其他特殊符号的处理思路在大多数编程语言中都是相通的：即就是通过转移符来保留所需要的特殊字符。Python中也不例外，如上所示，对于一个字典<code>{&quot;value&quot;: &quot;&lt;img src=&quot;xxx.jpg&quot;&gt;&quot;, &quot;name&quot;: &quot;小明&quot;}</code>，要想在编译器里正确的表示它，就需要通过对转移包裹xxx.jps的两个双引号，不然会提示错误，所以它的正确写法为：<code>{&quot;value&quot;: &quot;&lt;img src=\&quot;xxx.jpg\&quot;&gt;&quot;, &quot;name&quot;: &quot;小明&quot;}</code>；将序列化后的String作为参数传入待执行的sql语句中，通过编辑器的debug模式查看的效果如下所示：</p>
+<p><img src="./原始序列化结果图.png" alt="原始序列化结果图"></p>
+<p>而这句sql经过编译器解析后传入到MySQL去执行的本质为：<code>&#39;update demo set msg = &#39;{&quot;source&quot;: &quot;&lt;img src=&quot;xxx.jpg&quot;&gt;&quot;, &quot;type&quot;: &quot;图片&quot;}&#39; where id = &#39;1&#39;</code>，因此落库的实际结果其实并不是目标字典对应的序列化结果，而是目标数据对应的字面字符串值。</p>
+<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>可以通过转义符替换、修改sql书写方式或通过DataFrame.to_sql()三种方式来解决。</p>
+<h2 id="方案一-转义符替换"><a href="#方案一-转义符替换" class="headerlink" title="方案一  转义符替换"></a>方案一  转义符替换</h2><p>通过上文可以了解到，是因为<code>\\&quot;xxx.jpg\\&quot;</code>的本质即就是<code>&quot;xxx.jpg&quot;</code>，所以数据库读到的也就是<code>{&quot;source&quot;: &quot;&lt;img src=&quot;xxx.jpg&quot;&gt;&quot;, &quot;type&quot;: &quot;图片&quot;}</code>，从而导致插入的结果并不能被正确反序列化。可以通过简单粗暴的转义符替换方式来解决这个问题：<code>json_str.replace(&#39;\\&#39;, &#39;\\\\&#39;)</code>，这样就保证最终的解析结果为<code>\&quot;xxx.jpg\&quot;</code>。</p>
+<h2 id="方案二-修改sql书写方式"><a href="#方案二-修改sql书写方式" class="headerlink" title="方案二  修改sql书写方式"></a>方案二  修改sql书写方式</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">execute</span><span class="params">(self, query, args=None)</span>:</span></span><br><span class="line">    <span class="keyword">del</span> self.messages[:]</span><br><span class="line">    db = self._get_db()</span><br><span class="line">    <span class="keyword">if</span> isinstance(query, unicode):</span><br><span class="line">        query = query.encode(db.unicode_literal.charset)</span><br><span class="line">    <span class="keyword">if</span> args <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:</span><br><span class="line">        <span class="comment"># 通过调用内置的解析函数literal，将目标参数按照原义解析</span></span><br><span class="line">        <span class="comment"># 解析的依据详见源码的MySQLdb.converters</span></span><br><span class="line">        <span class="keyword">if</span> isinstance(args, dict):</span><br><span class="line">            query = query % dict((key, db.literal(item))</span><br><span class="line">                                 <span class="keyword">for</span> key, item <span class="keyword">in</span> args.iteritems())</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            query = query % tuple([db.literal(item) <span class="keyword">for</span> item <span class="keyword">in</span> args])</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        r = <span class="keyword">None</span></span><br><span class="line">        r = self._query(query)</span><br><span class="line">    <span class="keyword">except</span> TypeError, m:</span><br><span class="line">        <span class="keyword">if</span> m.args[<span class="number">0</span>] <span class="keyword">in</span> (<span class="string">"not enough arguments for format string"</span>,</span><br><span class="line">                         <span class="string">"not all arguments converted"</span>):</span><br><span class="line">            self.messages.append((ProgrammingError, m.args[<span class="number">0</span>]))</span><br><span class="line">            self.errorhandler(self, ProgrammingError, m.args[<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.messages.append((TypeError, m))</span><br><span class="line">            self.errorhandler(self, TypeError, m)</span><br><span class="line">    <span class="keyword">except</span> (SystemExit, KeyboardInterrupt):</span><br><span class="line">        <span class="keyword">raise</span></span><br><span class="line">    <span class="keyword">except</span>:</span><br><span class="line">        exc, value, tb = sys.exc_info()</span><br><span class="line">        <span class="keyword">del</span> tb</span><br><span class="line">        self.messages.append((exc, value))</span><br><span class="line">        self.errorhandler(self, exc, value)</span><br><span class="line">    self._executed = query</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> self._defer_warnings: self._warning_check()</span><br><span class="line">    <span class="keyword">return</span> r</span><br></pre></td></tr></table></figure>
+<p>查看MySQL-python的execute源码(如上所示)可以发现，在传入待执行的sql语句的同时，还可以传入参数列表/字典；让MySQL-Python来帮我们进行sql语句的拼接和解析操作，修改上述样例的实现方式：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">increment_id = <span class="number">1</span></span><br><span class="line">dic = &#123;<span class="string">"value"</span>: <span class="string">"&lt;img src=\"xxx.jpg\"&gt;"</span>, <span class="string">"name"</span>: <span class="string">"小明"</span>&#125;</span><br><span class="line">json_str = json.dumps(dic, ensure_ascii=<span class="keyword">False</span>)</span><br><span class="line"></span><br><span class="line">sql = <span class="string">"update demo set msg = %s where id = %s"</span></span><br><span class="line">mysql_cur.execute(sql, [json_str, increment_id])</span><br><span class="line">mysql_conn.commit()</span><br><span class="line">mysql_cur.close()</span><br></pre></td></tr></table></figure>
+<p>通过走读源码发现参数经过literal()方法将Python的对象转化为对应SQL数据的字符串格式；在编译器Debug模式下可以看到最终将<code>\\&quot;xxx.jpg\\&quot;</code>转化为<code>\\\\\\&quot;xxx.jpg\\\\\\&quot;</code>。至于为什么是六个反斜杠我自己也不太清楚；不过姑且可以这样理解：把literal方法的操作可以假定为有一次的序列化，因为给定的数据源是<code>\\&quot;</code>，所以序列化的结果为应该为<code>\\\\&quot;</code>，即就是四个反斜杠；因为<code>\\&quot;</code>代表的即就是<code>&quot;</code>，而期望落库的结果为<code>\&quot;</code>，所以需要再添加两个反斜杠。这种解释不是那么准确和严谨，但是有利于帮助理解，若有了解底层机制和原理的，还请留言指教。</p>
+<p><img src="./execute传参解析结果图.png" alt="execute传参解析结果图"></p>
+<p><em>推荐使用</em></p>
+<h2 id="方案三-DataFrame-to-sql"><a href="#方案三-DataFrame-to-sql" class="headerlink" title="方案三 DataFrame.to_sql()"></a>方案三 DataFrame.to_sql()</h2><p>处理数据离不开Panda工具包；Pandas的DataFrame.to_sql()方法可以便捷有效的实现数据的插入需求；同样该方法也能有效的规避上述这种序列化结果错误的情况，因为DataFrame.to_sql()底层的实现逻辑类似于方案二，也是通过参数解析的方式来拼接sql语句，核心源码如下所示，同于不难发现，DataFrame.to_sql()只能支持insert操作，适用场景比较局限。对于有唯一索引的表，当待插入数据与数据表中有冲突时会报错，实际使用时需要格外注意。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_statement</span><span class="params">(self)</span>:</span></span><br><span class="line">    names = list(map(text_type, self.frame.columns))</span><br><span class="line">    flv = self.pd_sql.flavor</span><br><span class="line">    wld = _SQL_WILDCARD[flv]  <span class="comment"># wildcard char</span></span><br><span class="line">    escape = _SQL_GET_IDENTIFIER[flv]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> self.index <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:</span><br><span class="line">        [names.insert(<span class="number">0</span>, idx) <span class="keyword">for</span> idx <span class="keyword">in</span> self.index[::<span class="number">-1</span>]]</span><br><span class="line"></span><br><span class="line">    bracketed_names = [escape(column) <span class="keyword">for</span> column <span class="keyword">in</span> names]</span><br><span class="line">    col_names = <span class="string">','</span>.join(bracketed_names)</span><br><span class="line">    wildcards = <span class="string">','</span>.join([wld] * len(names))</span><br><span class="line">    <span class="comment"># 只支持Insert操作</span></span><br><span class="line">    insert_statement = <span class="string">'INSERT INTO %s (%s) VALUES (%s)'</span> % (</span><br><span class="line">        escape(self.name), col_names, wildcards)</span><br><span class="line">    <span class="keyword">return</span> insert_statement</span><br></pre></td></tr></table></figure>
+  	
+					
+	  </div>     
+	  
+
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/MySQL/">MySQL</a> <a class="tag-link" href="/tags/Python/">Python</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar" src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+	</div>
+
+	<span class="donate-word"></span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2019/01/01/Kafka实践之Consumer/" data-hover="Kafka实践之Consumer"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
+    
+    <div id="disqus_thread"></div>
+
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
+
+
+	
+</article>
+
+          </section> 
+      </div>            
+    
+    <a id="backTop">
+      <span>
+        <i class="iconfont icon-backtotop"></i>
+      </span>
+    </a> 
+
+  
+    
+
+        
+        <div class="search-container sildeUpMin">
+
+
+            <div class="search-header">
+            <input type="text" placeholder="Typing Something here." id="search-input" class="search-input">  
+            <span class="search-cancel iconfont icon-cancel"></span>
+          
+            </div>
+              
+            <div id="search-result" class="search-result"></div>
+
+        </div>
+ 
+
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">Home
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">Archives
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">Tags
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">About
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">Search </a>                 
+            
+         
+      
+</div>        
+    
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?636802045446222199ae541e32c8133e"; 
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+
+
+     
+    
+
+
+
+
+<footer id="footer">	    
+
+		
+		<div class="footer-copyright">
+		&copy;
+				
+		2018-
+		
+		2019		
+		
+		YHYR
+		<br>
+		<!-- annotate theme msg in footer  by yhyr 2018/06/02
+		Theme By
+		<a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>	
+		-->
+		</div>			
+	 
+</footer>   
+
+  
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
