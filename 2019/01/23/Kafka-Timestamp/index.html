@@ -1,0 +1,352 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Kafka Timestamp |   【永恒依然】的博客 </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header">
+	
+  <nav class="header-nav">        
+   
+    <span class="iconfont icon-menu mobile-toggle"></span>   	
+
+    <!-- <a class="header-logo" href="/"></a> -->
+
+    <div class="header-menu">          
+              
+            
+
+              <a class="header-menu-link" id="header-menu-home" href="/">Home</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-archives" href="/archives">Archives</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-tags" href="/tags">Tags</a>     
+
+            
+            
+            
+
+              <a class="header-menu-link" id="header-menu-about" href="/about">About</a>     
+
+            
+            
+            
+
+              <a class="iconfont icon-menu-search header-menu-link" id="header-menu-search"></a>
+
+            
+                
+    </div>  
+    
+  </nav>
+</header>   
+
+      <div class="container">       
+          
+          
+            <section class="main">  
+          
+
+          <article class="post">
+  
+	<div class="post-header">
+
+	<p class="post-title">	
+		Kafka Timestamp
+	</p>
+			
+
+	<div class="meta-info">	
+	<span>
+		Jan 23, 2019
+	</span>
+
+	
+	
+		<i class="iconfont icon-words"></i>
+		<span>
+			3722
+		</span>
+	
+</div>
+
+</div> 
+	 
+
+	  <div class="post-content slideDownMin">
+
+		
+
+			
+					<p>简述Kafka在时间戳上的改进历程；实现基于时间戳操作Offset</p>
+<a id="more"></a>
+<h1 id="Timestamp来龙去脉"><a href="#Timestamp来龙去脉" class="headerlink" title="Timestamp来龙去脉"></a>Timestamp来龙去脉</h1><p><img src="./KIP-timestamp.png" alt="KIP-timestamp"></p>
+<h2 id="Message-Body"><a href="#Message-Body" class="headerlink" title="Message Body"></a>Message Body</h2><p>出于对日志保存、日志切分和Kafka Streaming的改进和优化，Kafka从<font color="red">0.10.0.0版本</font>起，在消息内新增加了个timestamp字段；时间戳的类型有两种：可以设定为producer创建消息的时间(CreateTime)，也可以设定为该消息写入Broker的时间(LogAppendTime)。默认为CreateTime，可通过参数<code>message.timestamp.type</code> 实现Topic级别的类型更改，Broker级别的时间戳类型参数为<code>log.message.timestamp.type</code>。</p>
+<p><em>有关Kafka Message新增时间戳的相关细节，可详见Kafka官方Doc [KIP-32 - Add timestamps to Kafka message</em>](<a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-32+-+Add+timestamps+to+Kafka+message" target="_blank" rel="noopener">https://cwiki.apache.org/confluence/display/KAFKA/KIP-32+-+Add+timestamps+to+Kafka+message</a>)</p>
+<h2 id="Log-Segment"><a href="#Log-Segment" class="headerlink" title="Log Segment"></a>Log Segment</h2><p>在Kafka 0.10.1.0以前(不包含0.10.1.0)，对于一个Topic而言，其Log Segment是由一个.log文件和一个.index文件组合而成，分别用来存储具体的消息数据和对应的偏移量；如下图所示：</p>
+<p><img src="./老版本Segment.png" alt="老版本Segment"></p>
+<p>从Kafka 0.10.1.0开始，对于日志文件，新增一个.timeindex文件，即每个Segment分别由.log、.index和.timeindex这三个文件组成。</p>
+<p><img src="./新版本Segment.png" alt="新版本Segment"></p>
+<p><em>有关Log Segment 新增.timeindex相关细节，可详见Kafka官方Doc <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-33+-+Add+a+time+based+log+index" target="_blank" rel="noopener">KIP-33 - Add a time based log index</a></em></p>
+<h1 id="根据时间戳查找消息"><a href="#根据时间戳查找消息" class="headerlink" title="根据时间戳查找消息"></a>根据时间戳查找消息</h1><p>在0.10.1.0以前，Kafka提供了通过指定Offset来消费消息(若不清楚如何实现，可参考<a href="https://yhyr.github.io/2019/01/01/Kafka%E5%AE%9E%E8%B7%B5%E4%B9%8BConsumer/" target="_blank" rel="noopener">Kafka实践之Consumer</a>)。讲道理，在那时候这个功能其实是比较鸡肋的，因为通常每天Kafka的消息量都会比较大，假如需要获取到前一天凌晨三点到五天之间产生的所有消息，维护人员压根不知道这个时间段内Offset的范围。当然这个问题从0.10.1.0以后将不复存在，接下来就来讨论如何实现按照时间戳查找消息。</p>
+<p>以Python API为例，从0.10.1.0以后新增加了一个offsets_for_times方法(Java API对应的方法为offsetsForTimes)，可以通过给定时间戳获取每一个Partition上大于等于该时间戳的最早的Offset值。这句话读起来可能比较拗口，举个例子：统计2018-12-30 17:00:00 到2018-12-30 20:00:00期间，Topic(topic_demo)的消息偏移量范围</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> kafka <span class="keyword">import</span> KafkaConsumer, TopicPartition</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">GetOffsetWithTimestamp</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, broker_list, topic)</span>:</span></span><br><span class="line">        self.topic = topic</span><br><span class="line">        self.consumer = KafkaConsumer(bootstrap_servers=broker_list)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_offset_time_window</span><span class="params">(self, begin_time, end_time)</span>:</span></span><br><span class="line">        partitions_structs = []</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> partition_id <span class="keyword">in</span> self.consumer.partitions_for_topic(self.topic):</span><br><span class="line">            partitions_structs.append(TopicPartition(self.topic, partition_id))</span><br><span class="line"></span><br><span class="line">        begin_search = &#123;&#125;</span><br><span class="line">        <span class="keyword">for</span> partition <span class="keyword">in</span> partitions_structs:</span><br><span class="line">            begin_search[partition] = begin_time <span class="keyword">if</span> isinstance(begin_time, int) <span class="keyword">else</span> self.__str_to_timestamp(begin_time)</span><br><span class="line">        begin_offset = self.consumer.offsets_for_times(begin_search)</span><br><span class="line"></span><br><span class="line">        end_search = &#123;&#125;</span><br><span class="line">        <span class="keyword">for</span> partition <span class="keyword">in</span> partitions_structs:</span><br><span class="line">            end_search[partition] = end_time <span class="keyword">if</span> isinstance(end_time, int) <span class="keyword">else</span> self.__str_to_timestamp(end_time)</span><br><span class="line">        end_offset = self.consumer.offsets_for_times(end_search)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> topic_partition, offset_and_timestamp <span class="keyword">in</span> begin_offset.items():</span><br><span class="line">            b_offset = <span class="string">'null'</span> <span class="keyword">if</span> offset_and_timestamp <span class="keyword">is</span> <span class="keyword">None</span> <span class="keyword">else</span> offset_and_timestamp[<span class="number">0</span>]</span><br><span class="line">            e_offset = <span class="string">'null'</span> <span class="keyword">if</span> end_offset[topic_partition] <span class="keyword">is</span> <span class="keyword">None</span> <span class="keyword">else</span> end_offset[topic_partition][<span class="number">0</span>]</span><br><span class="line">            print(<span class="string">'Between &#123;0&#125; and &#123;1&#125;, &#123;2&#125; offset range = [&#123;3&#125;, &#123;4&#125;]'</span>.format(begin_time, end_time, topic_partition,</span><br><span class="line">                                                                              b_offset, e_offset))</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str_to_timestamp</span><span class="params">(str_time, format_type=<span class="string">'%Y-%m-%d %H:%M:%S'</span>)</span>:</span></span><br><span class="line">        time_array = time.strptime(str_time, format_type)</span><br><span class="line">        <span class="keyword">return</span> int(time.mktime(time_array)) * <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    broker_list = <span class="string">'localhost:9092'</span></span><br><span class="line">    topic = <span class="string">'topic_demo'</span></span><br><span class="line"></span><br><span class="line">    action = GetOffsetWithTimestamp(broker_list, topic)</span><br><span class="line">    action.get_offset_time_window(<span class="string">'2018-12-30 17:00:00'</span>, <span class="string">'2018-12-30 20:00:00'</span>)</span><br></pre></td></tr></table></figure>
+<p>对于offsets_for_times的返回结果是一个<code>{TopicPartition: OffsetAndTimestamp}</code>，对于不同的TopicPartition(topic, partition)，其对应的OffsetAndTimestamp(offset, timestamp)通常都会是不一样的，如果找不到满足给定时间的最早消息，则返回None。</p>
+<p>若想实现消费指定时间范围内所产生的消息，源码详见<a href="https://github.com/YHYR/Kafka-Utils" target="_blank" rel="noopener">GitHub</a></p>
+<h1 id="Kafka-tools-GetOffsetShell"><a href="#Kafka-tools-GetOffsetShell" class="headerlink" title="Kafka.tools.GetOffsetShell"></a>Kafka.tools.GetOffsetShell</h1><p>查看消息偏移量是平时使用和维护过程中一个比较常见的操作；Kafka提供了一个内置的工具脚本来满足这方面的需求，代码实现逻辑详见<a href="https://github.com/YHYR/Kafka-Utils" target="_blank" rel="noopener">GitHub</a>，在这里来聊一下Kafka提供的GetOffsetShell工具：可以通过下载Kafka相应版本的源码，在<code>core\src\main\scala\kafka\tools</code>下查看该脚本的源码。该命令的使用方法如下</p>
+<p><code>bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list  &lt;address:port&gt; --topic &lt;string&gt; --time &lt;param&gt;</code></p>
+<p>broker-list、topic和time是三个必须参数，与此同时还可以指定partitions；如果不显示的指定partition，则默认查看所有分区对应的offset信息；在这里主要讨论一下参数time：</p>
+<p>time可以有三种值，分别为-1，-2和一个时间戳；-1代表latest，-2代表earliest，这两个是比较好理解的，可以分别执行一遍命令就能实现查看指定Topic的有效Offset的最大范围。</p>
+<p>需要注意：<font color="red">当time的值为一个时间戳时，这里返回的结果并不是上文中提及到的那种含义：即就是并不是返回各Partition内大于等于当前timestamp的最早那条消息的offset值，而是返回当前时间戳的消息所在的Segment中最早的那条消息的Offset值，说白了就是该时间戳的消息在那个Segment上， 就返回该Segment的文件名(把文件名前无效的零都去掉)</font>。</p>
+<p><img src="./GetOffsetShell-timestamp-result.png" alt="GetOffsetShell-timestamp-result"></p>
+<p><img src="./GetOffsetShell-timestamp-segment.png" alt="GetOffsetShell-timestamp-segment"></p>
+<h1 id=""><a href="#" class="headerlink" title=" "></a> </h1>  	
+					
+	  </div>     
+	  
+
+	
+<div class="post-meta">
+      	
+
+      
+        <i class="iconfont icon-tag"></i>     
+          <a class="tag-link" href="/tags/Kafka/">Kafka</a>    
+      	
+</div>
+
+
+
+
+
+<div class="post-footer">
+  <div class="pf-left">
+      <img class="pf-avatar lazyload" src="/images/placeholder.png" data-src="/images/header.jpg">
+      <p class="pf-des">YHYR</p>
+  </div>
+
+  <div class="pf-right">           
+      <div class="pf-links">
+        
+
+
+
+
+<span class="donate-btn">
+	<span class="iconfont icon-donate"></span>
+</span>
+
+
+<div id="donate-box" class="sildeUpMin">
+
+	<span class="donate-cancel iconfont icon-cancel"></span>
+
+	<div class="donate-img-box">
+		<img id="donate-qr-wechat" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+		<img id="donate-qr-alipay" class="noLazyLoad donate-img lazyload" src="/images/placeholder.png" alt="No Donate Image!" data-src="/images/donate_wechat.png">	
+	</div>
+
+	<span class="donate-word"></span>
+
+	<div class="donate-list">
+		<span class="iconfont icon-donate-wechat"></span>
+		<span class="iconfont icon-donate-alipay"></span>
+	</div>
+
+</div>
+
+ 
+        
+	
+<script id="-mob-share" src="http://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+	
+	<span class="share-btn">
+	<span class="iconfont icon-share"></span>
+	</span>
+
+
+	<div class="-mob-share sildeUpMin">
+		   			             
+            <a class="iconfont  icon-share-qq -mob-share-qq"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weixin -mob-share-weixin"></a>		
+     	   			             
+            <a class="iconfont  icon-share-weibo -mob-share-weibo"></a>		
+     	   			             
+            <a class="iconfont  icon-share-douban -mob-share-douban"></a>		
+     	   			             
+            <a class="iconfont  icon-share-facebook -mob-share-facebook"></a>		
+     	   			             
+            <a class="iconfont  icon-share-twitter -mob-share-twitter"></a>		
+     	   			             
+            <a class="iconfont  icon-share-google -mob-share-google"></a>		
+     	   
+	</div>	
+
+      </div>  
+    <nav class="pf-paginator">
+           
+        
+      
+        
+        <a href="/2019/01/17/MySQL存储Json字符串/" data-hover="MySQL存储Json字符串"> Next</a>
+            
+  </nav>   
+  </div>
+</div> 
+	
+
+
+    
+    <div id="disqus_thread"></div>
+
+    <script>
+    (function() { 
+    var d = document, s = d.createElement('script');
+    s.src = 'https://'+'lemonreds'+'.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());    
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+
+    <noscript>Please enable JavaScript to view the  <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+    </noscript>
+
+
+	
+</article>
+
+          </section> 
+      </div>            
+    
+    <a id="backTop">
+      <span>
+        <i class="iconfont icon-backtotop"></i>
+      </span>
+    </a> 
+
+  
+    
+
+        
+        <div class="search-container sildeUpMin">
+
+
+            <div class="search-header">
+            <input type="text" placeholder="Typing Something here." id="search-input" class="search-input">  
+            <span class="search-cancel iconfont icon-cancel"></span>
+          
+            </div>
+              
+            <div id="search-result" class="search-result"></div>
+
+        </div>
+ 
+
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon lazyload" src="/images/placeholder.png" data-src="/images/favicon.png">   
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">Home
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">Archives
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">Tags
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">About
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">Search </a>                 
+            
+         
+      
+</div>        
+    
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?636802045446222199ae541e32c8133e"; 
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+
+
+     
+    
+
+
+
+
+<footer id="footer">	    
+
+		
+		<div class="footer-copyright">
+		&copy;
+				
+		2018-
+		
+		2019		
+		
+		YHYR
+		<br>
+		<!-- annotate theme msg in footer  by yhyr 2018/06/02
+		Theme By
+		<a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>	
+		-->
+		</div>			
+	 
+</footer>   
+
+  
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
