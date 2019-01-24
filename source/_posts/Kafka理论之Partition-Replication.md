@@ -95,6 +95,8 @@ tags:
 
 　　这种命名格式的好处在于可以有效的规避单文件数据量过大导致的操作难问题，不仅如此，还可以方便、快速的定位数据。例如：要实现从指定offset处开始读取数据，只需要根据给定的offset值与对应Partition下的segment文件名所比对，就可以快速的定位目标数据所在的segment文件，然后根据目标segment的.index文件查找给定offset值所对应的实际磁盘偏移量，即可快速在.log中读取目标数据。
 
+　　在Kafka 0.10.1.0以后，对于每个Segment文件，在原有的.index和.log文件的基础上，新增加一个.timeindex文件，通过该索引文件 可以实现基于时间戳操作消息的功能，具体实现详见[Kafka Timestamp](https://yhyr.github.io/2019/01/23/Kafka-Timestamp/)
+
 <font color="red">Kafka中所说的Offset本质上是一个逻辑值，代表的是目标数据对应在Partition上的偏移量；而数据在磁盘上的实际偏移量是存储在对应Segment的.index文件中。</font>
 
 # 数据同步

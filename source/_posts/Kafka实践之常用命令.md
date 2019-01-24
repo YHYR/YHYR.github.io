@@ -75,7 +75,7 @@ time参数详解
 >
 > -2：查看Partition的最小Offset，即就是earlist
 >
-> timestamp：查询指定时间戳以后的所有消息中最早的一条消息的offset值；Eg：1546272000000
+> timestamp：查询满足时间戳的消息所在Segment的最早Offset值；详见 [Kafka Timestamp](https://yhyr.github.io/2019/01/23/Kafka-Timestamp/)
 
 # Consumer Group
 
