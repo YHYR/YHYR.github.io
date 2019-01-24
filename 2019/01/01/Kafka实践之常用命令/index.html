@@ -86,7 +86,7 @@
 	
 		<i class="iconfont icon-words"></i>
 		<span>
-			2268
+			2267
 		</span>
 	
 </div>
@@ -116,7 +116,7 @@
 <blockquote>
 <p>-1：查看Partition的最大Offset，即就是latest</p>
 <p>-2：查看Partition的最小Offset，即就是earlist</p>
-<p>timestamp：查询指定时间戳以后的所有消息中最早的一条消息的offset值；Eg：1546272000000</p>
+<p>timestamp：查询满足时间戳的消息所在Segment的最早Offset值；详见 <a href="https://yhyr.github.io/2019/01/23/Kafka-Timestamp/" target="_blank" rel="noopener">Kafka Timestamp</a></p>
 </blockquote>
 <h1 id="Consumer-Group"><a href="#Consumer-Group" class="headerlink" title="Consumer Group"></a>Consumer Group</h1><p>因为Consumer的版本有新旧之分，且旧版本(Scala)的Consumer Client是依赖于Zookeeper来保存Offset的，而新版本(Java)的则基于内置的topic(__consumer_offsets )来保存offset，所以在使用Group相关命令时，必须根据实际情况确定Consumer的版本，即就是：旧版本的查询只需要指定Zookeeper参数即可，而新版本的查询需要指定–new-consumer参数的同时，指定bootstrap-server参数</p>
 <h2 id="查看Group列表"><a href="#查看Group列表" class="headerlink" title="查看Group列表"></a>查看Group列表</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/kafka-consumer-groups.sh --new-consumer --bootstrap-server &lt;address:port&gt; --list</span><br></pre></td></tr></table></figure>
