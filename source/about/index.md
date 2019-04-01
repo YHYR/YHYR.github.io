@@ -25,13 +25,7 @@ date: 2018-05-31 20:48:16
 
 **E-Book Download Source**
 
-> [鸠摩搜书](https://www.jiumodiary.com/)　　[Salttiger](http://www.salttiger.com/)
-
-**Software crack**
-
-> [乐软博客](https://www.isharepc.com/)
-
-
+> [Salttiger](http://www.salttiger.com/)		[鸠摩搜书](https://www.jiumodiary.com/)
 
 ---
 
